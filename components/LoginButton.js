@@ -10,27 +10,36 @@ export default function LoginButton() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let unsubscribe;
+
     getRedirectResult(auth)
       .then((result) => {
-        if (result?.user) setUser(result.user);
+        if (result?.user) {
+          setUser(result.user);
+          setLoading(false);
+        } else {
+          unsubscribe = onAuthStateChanged(auth, (u) => {
+            setUser(u);
+            setLoading(false);
+          });
+        }
       })
       .catch((err) => {
         setError(err.code + ": " + err.message);
+        setLoading(false);
       });
 
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    return () => { if (unsubscribe) unsubscribe(); };
   }, []);
 
   const handleSignOut = async () => {
     await signOut(auth);
     setUser(null);
-    setLoading(false);
   };
+
+  if (loading) return (
+    <div style={{ color: '#00D9FF', padding: '12px' }}>Yükleniyor...</div>
+  );
 
   if (user) return (
     <div style={{ padding: '12px', backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px solid #00D9FF' }}>
