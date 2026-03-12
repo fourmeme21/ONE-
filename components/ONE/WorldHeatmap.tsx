@@ -111,4 +111,3 @@ const WorldHeatmap: React.FC<WorldHeatmapProps> = ({ cities = [], onCityHover })
 
 export { WorldHeatmap };
 export default WorldHeatmap;
-```
