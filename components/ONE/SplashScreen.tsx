@@ -90,4 +90,3 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
 
 export { SplashScreen };
 export default SplashScreen;
-```
