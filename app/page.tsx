@@ -83,6 +83,9 @@ const ONEAppDemo = () => {
           <p className="font-jetbrains text-[10px] tracking-[0.25em] text-[var(--text-ghost)] uppercase mt-1">
             3 seconds. No filter. Real.
           </p>
+          <div className="mt-4">
+            <LoginButton />
+          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }} className="mt-6 px-5">
