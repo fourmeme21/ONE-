@@ -1,4 +1,3 @@
-```ts
 import { PhotoData, CityData, UserProfile, ReactionCounts, EmojiType } from './types';
 
 const gradients = [
@@ -182,4 +181,3 @@ export const archivePhotos: PhotoData[] = mockPhotos.slice(0, 30).map((photo, i)
   ...photo,
   id: `archive-${i}`,
 }));
-```
