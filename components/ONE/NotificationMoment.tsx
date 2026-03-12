@@ -109,4 +109,3 @@ const NotificationMoment: React.FC<NotificationMomentProps> = ({
 
 export { NotificationMoment };
 export default NotificationMoment;
-```
