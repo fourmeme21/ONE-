@@ -14,8 +14,22 @@ export default function LoginButton() {
   };
 
   return (
-    <button onClick={handleLogin}>
-      Google ile Giriş Yap
+    <button
+      onClick={handleLogin}
+      style={{
+        backgroundColor: '#00D9FF',
+        color: '#000',
+        padding: '12px 24px',
+        borderRadius: '12px',
+        fontWeight: 'bold',
+        fontSize: '16px',
+        border: 'none',
+        cursor: 'pointer',
+        width: '100%',
+        marginBottom: '16px'
+      }}
+    >
+      🔑 Google ile Giriş Yap
     </button>
   );
 }
