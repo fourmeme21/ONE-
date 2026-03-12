@@ -1,4 +1,3 @@
-```js
 /** @type {import('postcss-load-config').Config} */
 const config = {
   plugins: {
@@ -7,4 +6,3 @@ const config = {
 }
 
 export default config
-```
