@@ -97,4 +97,3 @@ const GlobalFeed: React.FC<GlobalFeedProps> = ({
 
 export { GlobalFeed };
 export default GlobalFeed;
-```
