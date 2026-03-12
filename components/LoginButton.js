@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider } from "../lib/auth";
 
 export default function LoginButton() {
@@ -10,27 +10,22 @@ export default function LoginButton() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    let unsubscribe;
-
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-          setLoading(false);
-        } else {
-          unsubscribe = onAuthStateChanged(auth, (u) => {
-            setUser(u);
-            setLoading(false);
-          });
-        }
-      })
-      .catch((err) => {
-        setError(err.code + ": " + err.message);
-        setLoading(false);
-      });
-
-    return () => { if (unsubscribe) unsubscribe(); };
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
+
+  const handleLogin = async () => {
+    try {
+      setError(null);
+      const result = await signInWithPopup(auth, googleProvider);
+      setUser(result.user);
+    } catch (e) {
+      setError(e.code + ": " + e.message);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -58,10 +53,7 @@ export default function LoginButton() {
           HATA: {error}
         </p>
       )}
-      <button
-        onClick={() => signInWithRedirect(auth, googleProvider).catch(e => setError(e.message))}
-        style={{ backgroundColor: '#00D9FF', color: '#000', padding: '12px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer', width: '100%', marginBottom: '16px' }}
-      >
+      <button onClick={handleLogin} style={{ backgroundColor: '#00D9FF', color: '#000', padding: '12px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer', width: '100%', marginBottom: '16px' }}>
         🔑 Google ile Giriş Yap
       </button>
     </div>
