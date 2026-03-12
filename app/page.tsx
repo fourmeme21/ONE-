@@ -14,6 +14,7 @@ import OnboardingFlow from '@/components/ONE/OnboardingFlow';
 import AppNavigation from '@/components/ONE/AppNavigation';
 import ProfileScreen from '@/components/ONE/ProfileScreen';
 import StoryFlowBanner from '@/components/ONE/StoryFlowBanner';
+import LoginButton from '@/components/LoginButton';
 import { mockPhotos, mockCities, mockUserProfile } from '@/lib/mockData';
 
 type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile';
@@ -54,7 +55,8 @@ const ONEAppDemo = () => {
         );
       case 'profile':
         return (
-          <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center">
+          <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-4">
+            <LoginButton />
             <ProfileScreen userProfile={mockUserProfile} isPremium={isPremium} onUpgrade={() => setIsPremium(true)} />
           </motion.div>
         );
