@@ -1,6 +1,3 @@
-`components/ONE/TimeArchive.tsx`
-
-```tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -113,4 +110,3 @@ const TimeArchive: React.FC<TimeArchiveProps> = ({ photos = [], isPremium = fals
 
 export { TimeArchive };
 export default TimeArchive;
-```
