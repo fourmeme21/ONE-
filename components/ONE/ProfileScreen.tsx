@@ -157,4 +157,3 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
 export { ProfileScreen };
 export default ProfileScreen;
-```
