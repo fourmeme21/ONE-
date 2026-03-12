@@ -26,15 +26,17 @@ export default function LoginButton() {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return (
-    <div style={{ color: '#00D9FF', padding: '12px' }}>Yükleniyor...</div>
-  );
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setUser(null);
+    setLoading(false);
+  };
 
   if (user) return (
     <div style={{ padding: '12px', backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px solid #00D9FF' }}>
       <p style={{ color: '#00D9FF', fontWeight: 'bold', marginBottom: '8px' }}>👋 {user.displayName}</p>
       <p style={{ color: '#888', fontSize: '12px', marginBottom: '8px' }}>{user.email}</p>
-      <button onClick={() => signOut(auth)} style={{ backgroundColor: '#FF006E', color: '#fff', padding: '8px 20px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
+      <button onClick={handleSignOut} style={{ backgroundColor: '#FF006E', color: '#fff', padding: '8px 20px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
         Çıkış Yap
       </button>
     </div>
