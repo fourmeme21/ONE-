@@ -1,6 +1,3 @@
-`components/ONE/PhotoCard.tsx`
-
-```tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -79,4 +76,3 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
 
 export { PhotoCard };
 export default PhotoCard;
-```
