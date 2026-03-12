@@ -139,4 +139,3 @@ const ONEAppDemo = () => {
 };
 
 export default ONEAppDemo;
-```
