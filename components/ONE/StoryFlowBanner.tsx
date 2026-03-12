@@ -100,4 +100,3 @@ const StoryFlowBanner: React.FC = () => {
 
 export { StoryFlowBanner };
 export default StoryFlowBanner;
-```
