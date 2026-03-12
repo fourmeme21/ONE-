@@ -1,4 +1,3 @@
-```css
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -137,4 +136,3 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
-```
