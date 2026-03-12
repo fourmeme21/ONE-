@@ -79,4 +79,3 @@ const EmojiReactionSystem: React.FC<EmojiReactionSystemProps> = ({
 
 export { EmojiReactionSystem };
 export default EmojiReactionSystem;
-```
