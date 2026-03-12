@@ -54,4 +54,3 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
 
 export { AppNavigation };
 export default AppNavigation;
-```
