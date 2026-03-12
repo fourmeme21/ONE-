@@ -1,3 +1,5 @@
+'use client';
+
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../lib/auth";
 
