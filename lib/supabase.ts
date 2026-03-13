@@ -4,3 +4,19 @@ const supabaseUrl = 'https://tyvezabojerfaxyctohm.supabase.co'
 const supabaseAnonKey = 'sb_publishable_1JoS_on8letn0YwSIhZMKA_l1F_f-b2'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// --- Yeni eklenen fotoğraf yükleme fonksiyonu ---
+export const uploadMoment = async (file) => {
+  const fileName = `${Date.now()}-${file.name}`
+  
+  const { data, error } = await supabase.storage
+    .from('moments')
+    .upload(fileName, file)
+
+  if (error) {
+    console.error('Yükleme hatası:', error.message)
+    return null
+  }
+
+  return data.path
+}
