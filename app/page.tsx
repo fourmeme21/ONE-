@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-// --- Supabase Bağlantısı ---
 import { uploadMoment } from '@/lib/supabase'; 
 
 import SplashScreen from '@/components/ONE/SplashScreen';
@@ -49,29 +48,38 @@ const ONEAppDemo = () => {
           <motion.div key="capture" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center w-full">
             <h2 className="font-bebas text-4xl text-white mb-4">Capture Moment</h2>
             
-            {/* Yükleme Alanı */}
-            <div className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--border-subtle)] w-full max-w-md text-center">
-              <p className="text-white mb-4 font-jetbrains text-sm">Upload a 3-second moment</p>
-              <input 
-                type="file" 
-                accept="image/*" 
-                disabled={uploading}
-                onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
+            <div className="w-full max-w-md bg-[var(--bg-surface)] p-4 rounded-3xl border border-[var(--border-subtle)] relative">
+              <CameraCapture 
+                city="Istanbul" 
+                countryCode="TR" 
+                onCapture={async (imageData: string) => {
+                  try {
                     setUploading(true);
+                    const response = await fetch(imageData);
+                    const blob = await response.blob();
+                    const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+                    
                     const path = await uploadMoment(file);
                     setUploading(false);
-                    if (path) alert("Moment successfully uploaded!");
+                    
+                    if (path) {
+                      alert("Müjde! Fotoğraf Supabase'e uçtu.");
+                    }
+                  } catch (err) {
+                    setUploading(false);
+                    alert("Yükleme sırasında hata oluştu.");
                   }
                 }}
-                className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[var(--accent-electric)] file:text-black"
               />
-              {uploading && <p className="mt-2 text-[var(--accent-electric)] animate-pulse font-jetbrains text-xs">Uploading...</p>}
-            </div>
-
-            <div className="mt-8 opacity-40 pointer-events-none">
-               <CameraCapture city="Istanbul" countryCode="TR" />
+              
+              {uploading && (
+                <div className="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center z-50">
+                   <div className="text-[var(--accent-electric)] font-jetbrains text-sm animate-pulse text-center">
+                      <p>Hemen yükleniyor...</p>
+                      <p className="text-[10px] opacity-70">Lütfen bekleyin</p>
+                   </div>
+                </div>
+              )}
             </div>
           </motion.div>
         );
