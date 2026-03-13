@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+// --- Supabase Bağlantısı ---
+import { uploadMoment } from '@/lib/supabase'; 
+
 import SplashScreen from '@/components/ONE/SplashScreen';
 import NotificationMoment from '@/components/ONE/NotificationMoment';
 import CameraCapture from '@/components/ONE/CameraCapture';
@@ -25,6 +28,7 @@ const ONEAppDemo = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -42,9 +46,33 @@ const ONEAppDemo = () => {
         );
       case 'capture':
         return (
-          <motion.div key="capture" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center">
+          <motion.div key="capture" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center w-full">
             <h2 className="font-bebas text-4xl text-white mb-4">Capture Moment</h2>
-            <CameraCapture city="Istanbul" countryCode="TR" />
+            
+            {/* Yükleme Alanı */}
+            <div className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--border-subtle)] w-full max-w-md text-center">
+              <p className="text-white mb-4 font-jetbrains text-sm">Upload a 3-second moment</p>
+              <input 
+                type="file" 
+                accept="image/*" 
+                disabled={uploading}
+                onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setUploading(true);
+                    const path = await uploadMoment(file);
+                    setUploading(false);
+                    if (path) alert("Moment successfully uploaded!");
+                  }
+                }}
+                className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[var(--accent-electric)] file:text-black"
+              />
+              {uploading && <p className="mt-2 text-[var(--accent-electric)] animate-pulse font-jetbrains text-xs">Uploading...</p>}
+            </div>
+
+            <div className="mt-8 opacity-40 pointer-events-none">
+               <CameraCapture city="Istanbul" countryCode="TR" />
+            </div>
           </motion.div>
         );
       case 'archive':
@@ -77,7 +105,7 @@ const ONEAppDemo = () => {
     <div className="min-h-screen bg-[var(--bg-void)] overflow-x-hidden">
       <div className="pb-28">
         <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10 pb-2">
-          <h1 className="font-bebas leading-none" style={{ fontSize: 'clamp(72px, 20vw, 120px)', background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          <h1 className="font-bebas leading-none" style={{ fontSize: 'clamp(72px, 20vw, 120px)', background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             ONE
           </h1>
           <p className="font-jetbrains text-[10px] tracking-[0.25em] text-[var(--text-ghost)] uppercase mt-1">
