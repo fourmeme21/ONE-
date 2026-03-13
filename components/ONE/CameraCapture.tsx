@@ -2,193 +2,72 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// Firebase silindi, Supabase yüklendi
-import { uploadMoment } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
-interface CameraCaptureProps {
-  city?: string;
-  countryCode?: string;
-  onCapture?: (path: string) => void;
-  isDisabled?: boolean;
-  isCaptured?: boolean;
-}
+// Bağlantı bilgilerini direkt buraya gömdüm ki dosya yolu hatası olmasın
+const supabase = createClient(
+  'https://tyvezabojerfaxyctohm.supabase.co',
+  'sb_publishable_1JoS_on8letn0YwSIhZMKA_l1F_f-b2'
+);
 
-const CameraCapture: React.FC<CameraCaptureProps> = ({
-  city = 'Istanbul',
-  countryCode = 'TR',
-  onCapture,
-  isDisabled = false,
-  isCaptured = false,
-}) => {
-  const [countdown, setCountdown] = useState(3);
-  const [showFlash, setShowFlash] = useState(false);
+const CameraCapture = ({ city = 'Istanbul', countryCode = 'TR' }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadDone, setUploadDone] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    if (isDisabled || isCaptured) return;
-
-    const startCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 1280 } },
-          audio: false,
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          setCameraActive(true);
-        }
-      } catch (err) {
-        setCameraError('Kamera erişimi reddedildi');
-      }
-    };
-
-    startCamera();
-
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [isDisabled, isCaptured]);
-
-  useEffect(() => {
-    if (!cameraActive || countdown <= 0) return;
-    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cameraActive, countdown]);
+    async function start() {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      streamRef.current = s;
+      if (videoRef.current) videoRef.current.srcObject = s;
+    }
+    start();
+    return () => streamRef.current?.getTracks().forEach(t => t.stop());
+  }, []);
 
   const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx?.drawImage(video, 0, 0);
-    
-    // Görüntüyü hazırla
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    setShowFlash(true);
+    const ctx = canvasRef.current.getContext('2d');
+    ctx?.drawImage(videoRef.current, 0, 0, 400, 500);
+    const imageData = canvasRef.current.toDataURL('image/jpeg', 0.7);
     setCapturedImage(imageData);
-    setTimeout(() => setShowFlash(false), 300);
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
-
-    // SUPABASE STORAGE'A YÜKLE
     try {
       setUploading(true);
-      
-      // Base64 veriyi Supabase'in anlayacağı 'File' formatına çeviriyoruz
       const res = await fetch(imageData);
       const blob = await res.blob();
-      const file = new File([blob], `moment-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const fileName = `test-${Date.now()}.jpg`;
 
-      const path = await uploadMoment(file);
-      
-      if (path) {
-        console.log("✅ Supabase Yükleme başarılı:", path);
-        setUploadDone(true);
-        onCapture?.(path);
-      }
-    } catch (error) {
-      console.error("❌ Yükleme hatası:", error);
-      alert("Yükleme başarısız oldu.");
+      const { data, error } = await supabase.storage
+        .from('moments')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+      if (error) throw error;
+      alert("BAŞARILI! Dosya Supabase'e ulaştı: " + data.path);
+    } catch (err: any) {
+      alert("HATA: " + err.message);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto aspect-square">
-      <div className="absolute inset-0 rounded-3xl border-2 border-[var(--border-subtle)] overflow-hidden bg-black">
-
-        {!capturedImage && (
-          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
-        )}
-
-        {capturedImage && (
-          <img src={capturedImage} alt="Captured" className="absolute inset-0 w-full h-full object-cover" />
-        )}
-
-        {cameraError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="font-jetbrains text-xs text-red-400 uppercase tracking-wider text-center px-4">{cameraError}</p>
-          </div>
-        )}
-
-        <div className="absolute top-4 left-4 z-20">
-          <div className="font-jetbrains text-xs tracking-widest text-[var(--accent-electric)] uppercase bg-black/50 px-2 py-1 rounded">
-            📍 {city}, {countryCode}
-          </div>
-        </div>
-
-        {cameraActive && !capturedImage && (
-          <motion.div className="absolute top-4 right-4 z-20" animate={{ scale: countdown === 0 ? [1, 1.2, 0.8, 1] : 1 }}>
-            <div className={`px-3 py-1 rounded-full font-bebas text-sm font-bold ${countdown === 0 ? 'bg-green-500' : 'bg-red-500'} text-white`}>
-              {countdown === 0 ? 'ÇEK!' : `${countdown}s`}
-            </div>
-          </motion.div>
-        )}
-
-        {[
-          { className: 'top-4 left-4', border: 'border-t-2 border-l-2' },
-          { className: 'top-4 right-4', border: 'border-t-2 border-r-2' },
-          { className: 'bottom-4 left-4', border: 'border-b-2 border-l-2' },
-          { className: 'bottom-4 right-4', border: 'border-b-2 border-r-2' },
-        ].map((bracket, i) => (
-          <div key={i} className={`absolute w-8 h-8 ${bracket.className} z-10`}>
-            <div className={`absolute inset-0 ${bracket.border} border-[var(--accent-electric)]`} />
-          </div>
-        ))}
-
-        {(isCaptured || capturedImage) && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
-            <div className="text-center">
-              <div className="text-5xl mb-2">✓</div>
-              <p className="font-jetbrains text-[10px] text-white uppercase tracking-[0.2em]">
-                {uploading ? 'UPLOADING TO SUPABASE...' : uploadDone ? 'SAVED TO CLOUD ✓' : 'CAPTURED'}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {isDisabled && !isCaptured && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
-            <p className="font-jetbrains text-xs text-[var(--text-ghost)] uppercase tracking-wider">Already captured today</p>
-          </div>
-        )}
-      </div>
-
-      <canvas ref={canvasRef} className="hidden" />
-
-      {!isDisabled && !capturedImage && !isCaptured && (
-        <motion.button
-          onClick={handleCapture}
-          className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white bg-white/20 flex items-center justify-center z-30"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <div className="w-10 h-10 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
-        </motion.button>
+    <div className="relative w-full aspect-[4/5] bg-black rounded-3xl overflow-hidden border border-white/10">
+      <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${capturedImage ? 'hidden' : ''}`} />
+      {capturedImage && <img src={capturedImage} className="w-full h-full object-cover" />}
+      <canvas ref={canvasRef} width={400} height={500} className="hidden" />
+      
+      {!capturedImage && (
+        <button onClick={handleCapture} className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-blue-500" />
       )}
-
-      <AnimatePresence>
-        {showFlash && (
-          <motion.div className="absolute inset-0 rounded-3xl bg-white z-40" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} />
-        )}
-      </AnimatePresence>
+      
+      {uploading && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-white font-bold">
+          YÜKLENİYOR...
+        </div>
+      )}
     </div>
   );
 };
