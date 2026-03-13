@@ -1,73 +1,70 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import CameraCapture from "@/components/CameraCapture";
 
 export default function Home() {
   const [result, setResult] = useState(null);
 
   const handleCaptureComplete = ({ blob, location, timestamp }) => {
-    // 1. Video URL'ini güvenli bir şekilde oluştur
     const videoURL = URL.createObjectURL(blob);
-    
-    // 2. State'i güncelle (Bu otomatik olarak önizleme ekranını açar)
     setResult({ videoURL, location, timestamp });
   };
 
-  // Önizleme geldiğinde ekranın başına odaklan
-  useEffect(() => {
-    if (result) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [result]);
+  return (
+    <main className="min-h-screen bg-[#0a0a0a] text-white p-4 flex flex-col items-center">
+      {/* App Header */}
+      <div className="w-full max-w-md pt-8 pb-12 flex justify-between items-center">
+        <h1 className="text-2xl font-black tracking-tighter italic text-[#00fff7]">ONE</h1>
+        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00fff7] to-[#ff003c]" />
+      </div>
 
-  // Önizleme Ekranı
-  if (result) {
-    return (
-      <div className="fixed inset-0 w-full h-[100dvh] bg-black flex flex-col items-center justify-between z-[50]">
-        <div className="w-full flex-1 flex flex-col items-center justify-center p-4 gap-6">
-          <h2 className="text-[#00fff7] text-[10px] tracking-[0.4em] uppercase opacity-70">Önizleme</h2>
-          
-          <video
-            src={result.videoURL}
-            controls
-            autoPlay
-            playsInline
-            className="w-full max-w-sm rounded-2xl border border-white/10 shadow-2xl shadow-[#00fff7]/10"
-            style={{ maxHeight: "55dvh", objectFit: "cover" }}
-          />
-
-          <div className="text-center space-y-4">
-            <div>
-              <p className="text-[9px] tracking-widest uppercase text-[#00fff7] mb-1">Konum</p>
-              <p className="text-white text-xs font-mono">
-                {result.location
-                  ? `${result.location.lat.toFixed(6)}, ${result.location.long.toFixed(6)}`
-                  : "Konum saptanamadı"}
+      <div className="w-full max-w-md space-y-8">
+        {!result ? (
+          /* KAMERA MODU */
+          <div className="space-y-6">
+            <CameraCapture onCaptureComplete={handleCaptureComplete} />
+            <div className="px-2">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-2">Talimat</h2>
+              <p className="text-xs text-white/60 leading-relaxed">
+                Butona bastığında 3 saniyelik ham görüntü ve ortam sesi kaydedilir. Filtre yok, düzenleme yok. Sadece o an.
               </p>
             </div>
-            <div>
-              <p className="text-[9px] tracking-widest uppercase text-[#00fff7] mb-1">Zaman Damgası (UTC)</p>
-              <p className="text-white text-xs font-mono">{result.timestamp}</p>
+          </div>
+        ) : (
+          /* ÖNİZLEME MODU */
+          <div className="animate-in fade-in zoom-in duration-500 space-y-6">
+            <div className="rounded-3xl overflow-hidden border border-[#00fff7]/30 shadow-[0_0_40px_#00fff711] bg-black aspect-[3/4] relative">
+              <video 
+                src={result.videoURL} 
+                controls 
+                autoPlay 
+                loop 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                 <p className="text-[9px] text-[#00fff7] font-mono tracking-tighter">
+                   {result.location?.lat.toFixed(4)}, {result.location?.long.toFixed(4)}
+                 </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setResult(null)}
+                className="py-4 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors"
+              >
+                İptal Et
+              </button>
+              <button 
+                className="py-4 rounded-2xl bg-[#00fff7] text-black text-[10px] font-bold uppercase tracking-widest shadow-[0_0_20px_#00fff744]"
+              >
+                Paylaş
+              </button>
             </div>
           </div>
-        </div>
-
-        <div className="p-8 w-full max-w-sm">
-          <button
-            onClick={() => {
-              URL.revokeObjectURL(result.videoURL); // Belleği temizle
-              setResult(null); // Kameraya geri dön
-            }}
-            className="w-full py-4 rounded-xl text-sm tracking-[0.2em] uppercase font-bold transition-all active:scale-95 bg-black border border-[#00fff7] text-[#00fff7] shadow-[0_0_20px_rgba(0,255,247,0.2)]"
-          >
-            Yeni Çekim Yap
-          </button>
-        </div>
+        )}
       </div>
-    );
-  }
-
-  // Kamera Ekranı
-  return <CameraCapture onCaptureComplete={handleCaptureComplete} />;
+    </main>
+  );
 }
