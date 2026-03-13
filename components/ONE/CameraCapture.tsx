@@ -12,7 +12,9 @@ const supabase = createClient(
 const CameraCapture = ({ city = 'Istanbul', countryCode = 'TR' }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment'); // Varsayılan arka kamera
+  const [isDone, setIsDone] = useState(false);
+  // Başlangıcı 'environment' (arka kamera) yapıyoruz
+  const [mode, setMode] = useState<'user' | 'environment'>('environment'); 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -22,24 +24,29 @@ const CameraCapture = ({ city = 'Istanbul', countryCode = 'TR' }) => {
       streamRef.current.getTracks().forEach(t => t.stop());
     }
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: facingMode } 
-      });
+      const constraints = {
+        video: { 
+          facingMode: { exact: mode } // 'exact' kullanarak tarayıcıyı zorluyoruz
+        }
+      };
+      
+      // Eğer 'exact' hata verirse (bazı eski cihazlar), normal moda düşür
+      const s = await navigator.mediaDevices.getUserMedia(constraints)
+        .catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } }));
+
       streamRef.current = s;
-      if (videoRef.current) videoRef.current.srcObject = s;
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+      }
     } catch (err) {
-      console.error("Kamera açılmadı:", err);
+      console.error("Kamera hatası:", err);
     }
   };
 
   useEffect(() => {
     startCamera();
     return () => streamRef.current?.getTracks().forEach(t => t.stop());
-  }, [facingMode]);
-
-  const toggleCamera = () => {
-    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
-  };
+  }, [mode]);
 
   const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -52,16 +59,16 @@ const CameraCapture = ({ city = 'Istanbul', countryCode = 'TR' }) => {
       setUploading(true);
       const res = await fetch(imageData);
       const blob = await res.blob();
-      const fileName = `${Date.now()}.jpg`;
+      const fileName = `moment-${Date.now()}.jpg`;
 
       const { error } = await supabase.storage
         .from('moments')
         .upload(fileName, blob);
 
       if (error) throw error;
-      // Alert yerine aşağıda 'uploading' state'i ile kontrol edilen görsel mesaj gelecek
+      setIsDone(true); // Yükleme bittiğinde başarı moduna geç
     } catch (err: any) {
-      alert("Hata: " + err.message);
+      console.error(err);
     } finally {
       setUploading(false);
     }
@@ -69,60 +76,44 @@ const CameraCapture = ({ city = 'Istanbul', countryCode = 'TR' }) => {
 
   return (
     <div className="relative w-full aspect-[4/5] bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
-      <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${capturedImage ? 'hidden' : ''}`} />
-      
-      {capturedImage && <img src={capturedImage} className="w-full h-full object-cover" alt="Captured" />}
+      <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${capturedImage ? 'hidden' : ''}`} />
+      {capturedImage && <img src={capturedImage} className="w-full h-full object-cover" />}
       <canvas ref={canvasRef} width={400} height={500} className="hidden" />
-      
-      {/* Üst Bilgi Barı */}
-      <div className="absolute top-4 left-4 z-10 flex gap-2">
-        <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-jetbrains text-[var(--accent-electric)] border border-white/10 uppercase tracking-tighter">
-          📍 {city}, {countryCode}
-        </div>
-      </div>
 
-      {/* Kamera Değiştirme Butonu (Sadece çekimden önce) */}
+      {/* Arka/Ön Geçiş Butonu */}
       {!capturedImage && (
         <button 
-          onClick={toggleCamera}
-          className="absolute top-4 right-4 z-20 p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20"
+          onClick={() => setMode(m => m === 'user' ? 'environment' : 'user')}
+          className="absolute top-4 right-4 z-20 p-3 bg-black/40 backdrop-blur-xl rounded-full border border-white/20 active:scale-90 transition-transform"
         >
-          <span className="text-lg">🔄</span>
+          🔄
         </button>
       )}
-      
-      {/* Alt Kontrol (Deklanşör) */}
+
+      {/* Deklanşör */}
       {!capturedImage && (
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center">
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
-            onClick={handleCapture} 
-            className="w-20 h-20 bg-white rounded-full border-[6px] border-white/30 flex items-center justify-center shadow-inner"
-          >
-            <div className="w-14 h-14 bg-white rounded-full border-2 border-black/5" />
-          </motion.button>
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center">
+          <button onClick={handleCapture} className="w-20 h-20 bg-white rounded-full border-[6px] border-white/20 p-1">
+             <div className="w-full h-full bg-white rounded-full border border-black/10" />
+          </button>
         </div>
       )}
-      
-      {/* Yükleme ve Başarı Mesajı (Artık alert yok) */}
+
+      {/* Yükleme Ekranı */}
       <AnimatePresence>
         {uploading && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-50"
-          >
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="font-bebas text-2xl text-white tracking-widest uppercase">GÖNDERİLİYOR...</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
+            <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+            <p className="text-white font-jetbrains text-xs tracking-[0.3em]">PROCESSING...</p>
           </motion.div>
         )}
 
-        {!uploading && capturedImage && (
-          <motion.div 
-            initial={{ y: 50 }} animate={{ y: 0 }}
-            className="absolute bottom-6 left-6 right-6 bg-green-500 text-black p-4 rounded-2xl flex items-center justify-between z-50 shadow-2xl"
-          >
-            <span className="font-bebas text-xl">ANI KAYDEDİLDİ! 🚀</span>
-            <button onClick={() => setCapturedImage(null)} className="text-xs font-bold underline">YENİ ÇEK</button>
+        {isDone && (
+          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="absolute inset-x-0 bottom-0 bg-[var(--accent-electric)] p-6 text-black z-[60]">
+            <div className="flex justify-between items-center">
+               <p className="font-bebas text-2xl tracking-wider">MOMENT SENT ⚡</p>
+               <button onClick={() => { setCapturedImage(null); setIsDone(false); }} className="font-jetbrains text-[10px] font-bold border-b border-black">DISMISS</button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
