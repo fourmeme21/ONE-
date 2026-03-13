@@ -1,22 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase'; // Supabase istemcini buraya import ediyoruz
+import { supabase } from '@/lib/supabase';
 
 export default function LoginButton() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Mevcut oturumu kontrol et
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       setLoading(false);
     };
-
     checkUser();
 
-    // Oturum değişikliklerini dinle (Giriş/Çıkış yapıldığında otomatik güncellenir)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -28,7 +25,11 @@ export default function LoginButton() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin, // Giriş sonrası ana sayfaya döner
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        }
+        // redirectTo'yu sildik, Supabase panelindeki Site URL'i kullanacak.
       },
     });
     if (error) console.error("Giriş hatası:", error.message);
