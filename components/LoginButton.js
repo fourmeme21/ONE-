@@ -1,30 +1,42 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { auth } from '@/lib/firebase';
-import { signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
+import { supabase } from '@/lib/supabase'; // Supabase istemcini buraya import ediyoruz
 
 export default function LoginButton() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) setUser(result.user);
-      })
-      .catch((error) => console.error("Redirect error:", error))
-      .finally(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-          setUser(currentUser);
-          setLoading(false);
-        });
-        return () => unsubscribe();
-      });
+    // Mevcut oturumu kontrol et
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+
+    checkUser();
+
+    // Oturum değişikliklerini dinle (Giriş/Çıkış yapıldığında otomatik güncellenir)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogin = () => {
-    const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin, // Giriş sonrası ana sayfaya döner
+      },
+    });
+    if (error) console.error("Giriş hatası:", error.message);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
   if (loading) return (
@@ -33,10 +45,10 @@ export default function LoginButton() {
 
   if (user) return (
     <div style={{ padding: '16px', backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px solid #00D9FF', textAlign: 'center' }}>
-      <p style={{ color: '#00D9FF', fontWeight: 'bold', marginBottom: '8px' }}>👋 {user.displayName}</p>
+      <p style={{ color: '#00D9FF', fontWeight: 'bold', marginBottom: '8px' }}>👋 {user.user_metadata?.full_name || 'Kullanıcı'}</p>
       <p style={{ color: '#888', fontSize: '12px', marginBottom: '12px' }}>{user.email}</p>
       <button
-        onClick={() => auth.signOut().then(() => setUser(null))}
+        onClick={handleLogout}
         style={{ backgroundColor: '#FF006E', color: '#fff', padding: '8px 20px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
       >
         Çıkış Yap
@@ -53,4 +65,3 @@ export default function LoginButton() {
     </button>
   );
 }
-
