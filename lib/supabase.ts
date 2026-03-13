@@ -7,26 +7,25 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export const uploadMoment = async (file: File) => {
   try {
-    const fileName = `${Date.now()}-${file.name}`
+    // Dosya adını temizleyelim: Sadece rakam ve .jpg gibi uzantı kalsın
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
     
     const { data, error } = await supabase.storage
       .from('moments')
       .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      })
+        upsert: true // Eğer aynı isimde dosya varsa üzerine yaz (hata vermez)
+      });
 
     if (error) {
-      // Hatayı direkt ekranda görelim
-      alert("Supabase Hatası: " + error.message)
-      console.error('Yükleme hatası:', error)
-      return null
+      alert("Yükleme Başarısız: " + error.message);
+      return null;
     }
 
-    console.log('Yükleme başarılı:', data)
-    return data.path
+    alert("TEBRİKLER: Fotoğraf başarıyla Supabase'e yüklendi!");
+    return data.path;
   } catch (err: any) {
-    alert("Bağlantı Hatası: " + err.message)
-    return null
+    alert("Sistem Hatası: " + err.message);
+    return null;
   }
 }
