@@ -16,94 +16,158 @@ const CameraCapture = ({ city = 'Istanbul', countryCode = 'TR' }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  
-  // Yeni eklenen Ref: Sayfayı buraya kaydıracağız
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Resim çekilip durum güncellendiğinde sayfayı kaydır
+  // Kamerayı Başlatma Fonksiyonu
+  const startCamera = async () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    try {
+      const constraints = {
+        video: { 
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        // Video yüklendiğinde oynatmayı garanti et
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(e => console.error("Oynatma hatası:", e));
+        };
+      }
+    } catch (err) {
+      console.error("Kamera erişim hatası:", err);
+    }
+  };
+
+  useEffect(() => {
+    startCamera();
+    return () => streamRef.current?.getTracks().forEach(track => track.stop());
+  }, [mode]);
+
+  // Resim çekilince odaklan
   useEffect(() => {
     if (capturedImage && containerRef.current) {
       containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [capturedImage]);
 
-  useEffect(() => {
-    async function start() {
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: mode, width: { ideal: 1920 }, height: { ideal: 1080 } } 
-        });
-        streamRef.current = s;
-        if (videoRef.current) videoRef.current.srcObject = s;
-      } catch (e) { console.error(e); }
-    }
-    start();
-    return () => streamRef.current?.getTracks().forEach(t => t.stop());
-  }, [mode]);
-
   const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-    const img = canvas.toDataURL('image/jpeg', 0.8);
-    setCapturedImage(img);
+    
+    // Canvas boyutlarını video ile eşitle
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Görüntüyü çiz
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    setCapturedImage(imgData);
     setUploading(true);
 
     try {
-      const res = await fetch(img);
+      const res = await fetch(imgData);
       const blob = await res.blob();
-      await supabase.storage.from('moments').upload(`${Date.now()}.jpg`, blob);
-    } catch (e) { console.error(e); }
-    setUploading(false);
+      const fileName = `moment-${Date.now()}.jpg`;
+
+      const { error } = await supabase.storage
+        .from('moments')
+        .upload(fileName, blob);
+
+      if (error) throw error;
+    } catch (e) {
+      console.error("Yükleme hatası:", e);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <div 
-      ref={containerRef} // Sayfanın odaklanacağı yer burası
-      style={!capturedImage ? { 
-        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, backgroundColor: 'black'
-      } : { 
-        position: 'relative', width: '94%', margin: '40px auto', borderRadius: '32px', overflow: 'hidden', aspectRatio: '3/4' 
-      }}
-      className="transition-all duration-700 ease-in-out"
-    >
-      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ display: capturedImage ? 'none' : 'block' }} />
-      {capturedImage && <img src={capturedImage} className="w-full h-full object-cover shadow-2xl animate-in fade-in duration-1000" />}
-      <canvas ref={canvasRef} className="hidden" />
+    <div ref={containerRef} className="w-full flex justify-center py-4">
+      <div 
+        className={`relative transition-all duration-500 ease-in-out bg-black overflow-hidden shadow-2xl ${
+          !capturedImage 
+            ? 'fixed inset-0 z-[9999] w-full h-full' // Tam Ekran
+            : 'w-[94%] aspect-[3/4] rounded-[2rem] relative z-10' // Küçük Kart
+        }`}
+      >
+        <video 
+          ref={videoRef} 
+          autoPlay 
+          playsInline 
+          muted 
+          className="w-full h-full object-cover"
+          style={{ display: capturedImage ? 'none' : 'block' }}
+        />
+        
+        {capturedImage && (
+          <img src={capturedImage} className="w-full h-full object-cover" alt="Captured" />
+        )}
 
-      {!capturedImage && (
-        <>
-          <div className="absolute top-14 left-6 z-20 bg-black/30 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 text-white text-[10px] font-mono tracking-widest uppercase">
-            📍 {city}, {countryCode}
-          </div>
-          <button onClick={() => setMode(m => m === 'user' ? 'environment' : 'user')} className="absolute top-14 right-6 z-20 p-4 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 text-2xl">
-            🔄
-          </button>
-          <div className="absolute bottom-20 left-0 right-0 flex justify-center z-20">
-            <button onClick={handleCapture} className="w-22 h-22 p-2 bg-white/20 rounded-full border border-white/30 backdrop-blur-sm active:scale-90 transition-all shadow-2xl">
-              <div className="w-full h-full bg-white rounded-full shadow-lg" />
+        <canvas ref={canvasRef} className="hidden" />
+
+        {!capturedImage && (
+          <>
+            {/* Üst Bilgiler */}
+            <div className="absolute top-12 left-6 z-[10000] flex flex-col gap-1">
+              <div className="bg-black/40 backdrop-blur-xl px-3 py-1 rounded-full border border-white/10 text-white text-[10px] font-mono tracking-widest uppercase">
+                📍 {city}
+              </div>
+            </div>
+
+            {/* Kamera Çevirme */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); setMode(m => m === 'user' ? 'environment' : 'user'); }}
+              className="absolute top-12 right-6 z-[10000] p-4 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 text-white text-xl active:scale-90 transition-transform"
+            >
+              🔄
+            </button>
+
+            {/* Deklanşör */}
+            <div className="absolute bottom-16 left-0 right-0 flex justify-center z-[10000]">
+              <button 
+                onClick={handleCapture}
+                className="w-20 h-20 bg-white rounded-full border-[6px] border-white/30 flex items-center justify-center active:scale-90 transition-transform"
+              >
+                <div className="w-14 h-14 bg-white rounded-full border-2 border-black/5" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Yükleme Ekranı */}
+        <AnimatePresence>
+          {uploading && (
+            <motion.div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[10001]">
+              <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+              <p className="text-white font-jetbrains text-[10px] tracking-[0.5em] uppercase">Processing</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {capturedImage && !uploading && (
+          <div className="absolute bottom-6 left-6 right-6 z-20">
+            <button 
+              onClick={() => setCapturedImage(null)}
+              className="w-full py-4 bg-white text-black font-jetbrains text-[11px] font-bold rounded-2xl uppercase tracking-widest"
+            >
+              YENİ ANI ÇEK
             </button>
           </div>
-        </>
-      )}
-
-      {uploading && (
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-lg flex flex-col items-center justify-center z-[10000]">
-          <div className="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin mb-4" />
-          <p className="text-white font-jetbrains text-[10px] tracking-[0.5em] uppercase">Saving Moment</p>
-        </div>
-      )}
-      
-      {capturedImage && !uploading && (
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
-           <button onClick={() => setCapturedImage(null)} className="w-full py-4 bg-white text-black font-jetbrains text-[11px] font-bold rounded-2xl shadow-2xl uppercase tracking-widest">
-             Yeni Anı Çek
-           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
