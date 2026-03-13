@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { storage } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+// Firebase silindi, Supabase yüklendi
+import { uploadMoment } from '@/lib/supabase';
 
 interface CameraCaptureProps {
   city?: string;
   countryCode?: string;
-  onCapture?: (downloadURL: string) => void;
+  onCapture?: (path: string) => void;
   isDisabled?: boolean;
   isCaptured?: boolean;
 }
@@ -75,8 +75,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx?.drawImage(video, 0, 0);
+    
+    // Görüntüyü hazırla
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
     setShowFlash(true);
     setCapturedImage(imageData);
     setTimeout(() => setShowFlash(false), 300);
@@ -85,17 +86,25 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
       streamRef.current.getTracks().forEach(track => track.stop());
     }
 
-    // Firebase Storage'a yükle
+    // SUPABASE STORAGE'A YÜKLE
     try {
       setUploading(true);
-      const storageRef = ref(storage, `moments/${Date.now()}.jpg`);
-      await uploadString(storageRef, imageData, 'data_url');
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log("✅ Yükleme başarılı:", downloadURL);
-      setUploadDone(true);
-      onCapture?.(downloadURL);
+      
+      // Base64 veriyi Supabase'in anlayacağı 'File' formatına çeviriyoruz
+      const res = await fetch(imageData);
+      const blob = await res.blob();
+      const file = new File([blob], `moment-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      const path = await uploadMoment(file);
+      
+      if (path) {
+        console.log("✅ Supabase Yükleme başarılı:", path);
+        setUploadDone(true);
+        onCapture?.(path);
+      }
     } catch (error) {
       console.error("❌ Yükleme hatası:", error);
+      alert("Yükleme başarısız oldu.");
     } finally {
       setUploading(false);
     }
@@ -148,8 +157,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
             <div className="text-center">
               <div className="text-5xl mb-2">✓</div>
-              <p className="font-jetbrains text-xs text-[var(--accent-alive)] uppercase tracking-wider">
-                {uploading ? 'Yükleniyor...' : uploadDone ? 'Kaydedildi ✓' : 'Captured'}
+              <p className="font-jetbrains text-[10px] text-white uppercase tracking-[0.2em]">
+                {uploading ? 'UPLOADING TO SUPABASE...' : uploadDone ? 'SAVED TO CLOUD ✓' : 'CAPTURED'}
               </p>
             </div>
           </motion.div>
@@ -167,11 +176,11 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
       {!isDisabled && !capturedImage && !isCaptured && (
         <motion.button
           onClick={handleCapture}
-          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white bg-white/20 flex items-center justify-center z-30"
+          className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white bg-white/20 flex items-center justify-center z-30"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          <div className="w-10 h-10 rounded-full bg-white" />
+          <div className="w-10 h-10 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
         </motion.button>
       )}
 
@@ -184,5 +193,4 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   );
 };
 
-export { CameraCapture };
 export default CameraCapture;
