@@ -21,11 +21,13 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
   const touchStartTime = useRef<number>(0);
+  const didFire = useRef<boolean>(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
     touchStartTime.current = Date.now();
+    didFire.current = false;
   };
 
   const handleTouchEnd = (
@@ -36,9 +38,23 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
     const elapsed = Date.now() - touchStartTime.current;
 
-    // 8px'den fazla hareket veya 400ms'den uzun basış → scroll/long press, iptal et
-    if (deltaY > 8 || deltaX > 8 || elapsed > 400) return;
+    if (deltaY > 10 || deltaX > 10 || elapsed > 500) return;
 
+    e.preventDefault();
+    e.stopPropagation();
+    didFire.current = true;
+    onTabChange?.(tabId);
+  };
+
+  const handleClick = (
+    e: React.MouseEvent,
+    tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile'
+  ) => {
+    // Touch zaten tetiklediyse onClick'i yoksay (double-fire önlemi)
+    if (didFire.current) {
+      didFire.current = false;
+      return;
+    }
     e.stopPropagation();
     onTabChange?.(tabId);
   };
@@ -54,10 +70,7 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
               key={tab.id}
               onTouchStart={handleTouchStart}
               onTouchEnd={(e) => handleTouchEnd(e, tab.id)}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTabChange?.(tab.id);
-              }}
+              onClick={(e) => handleClick(e, tab.id)}
               className="relative flex flex-col items-center justify-center gap-1"
               whileTap={{ scale: 0.95 }}
             >
