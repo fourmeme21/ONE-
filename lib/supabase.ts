@@ -55,11 +55,13 @@ export const checkTodayCapture = async (): Promise<boolean> => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
+    // RLS'den bağımsız — kendi postunu her durumda görmesi için
+    // moderation_status veya is_visible filtresi YOK
     const { data, error } = await supabase
       .from('posts')
       .select('id')
       .eq('user_id', user.id)
-      .gte('created_at', today.toISOString())
+      .gte('captured_at', today.toISOString())
       .limit(1)
 
     if (error) {
