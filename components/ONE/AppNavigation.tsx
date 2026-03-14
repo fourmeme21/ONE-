@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface AppNavigationProps {
@@ -18,6 +18,30 @@ const tabs = [
 ];
 
 const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTabChange, hasNewMoments = true }) => {
+  // Dokunma başlangıç pozisyonunu kaydet
+  const touchStartY = useRef<number>(0);
+  const touchStartX = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (
+    e: React.TouchEvent,
+    tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile'
+  ) => {
+    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
+
+    // 10px'den fazla hareket varsa scroll sayılır, tıklama tetiklenmez
+    if (deltaY > 10 || deltaX > 10) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    onTabChange?.(tabId);
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--bg-void)] to-[var(--bg-deep)] border-t border-[var(--border-subtle)] px-4 py-3 z-50">
       <div className="flex items-center justify-around max-w-md mx-auto">
@@ -27,12 +51,15 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
           return (
             <motion.button
               key={tab.id}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={(e) => handleTouchEnd(e, tab.id)}
               onClick={(e) => {
+                // Mouse click (masaüstü) için normal çalışsın
                 e.stopPropagation();
                 onTabChange?.(tab.id);
               }}
-              className="relative flex flex-col items-center justify-center gap-1 touch-none"
-              whileHover={{ scale: 1.05 }}
+              className="relative flex flex-col items-center justify-center gap-1"
+              style={{ touchAction: 'none' }}
               whileTap={{ scale: 0.95 }}
             >
               <div className={`flex items-center justify-center ${isCapture ? 'w-14 h-14 rounded-full border-2 border-[var(--accent-electric)]' : 'w-8 h-8'}`}>
