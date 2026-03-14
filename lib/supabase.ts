@@ -105,7 +105,6 @@ export const uploadMoment = async (
     .insert([{
       user_id: user.id,
       file_path: storageData.path,
-      location_name: null,
       location_point: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
       captured_at: capturedAt || new Date().toISOString(),
     }])
