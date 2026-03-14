@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { uploadMoment, checkTodayCapture, supabase } from '@/lib/supabase'; 
+import { uploadMoment, checkTodayCapture, supabase } from '@/lib/supabase';
 
 import SplashScreen from '@/components/ONE/SplashScreen';
 import NotificationMoment from '@/components/ONE/NotificationMoment';
@@ -34,10 +34,11 @@ const ONEAppDemo = () => {
   const [user, setUser] = useState<any>(null);
   const [showVideoReview, setShowVideoReview] = useState(false);
 
-  const lastTapTimeRef = useRef<number>(0);
+  const contentRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Scroll tracking
   useEffect(() => {
     const handleScroll = () => {
       isScrollingRef.current = true;
@@ -50,19 +51,17 @@ const ONEAppDemo = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  // Kullanıcı değişince hasCapturedToday sıfırla
   useEffect(() => {
     setHasCapturedToday(false);
   }, [user]);
@@ -88,32 +87,27 @@ const ONEAppDemo = () => {
       if (!captured) {
         const now = new Date();
         const currentTime = now.getHours() * 60 + now.getMinutes();
-        
         const [sH, sM] = sleepConfig.start.split(':').map(Number);
         const [eH, eM] = sleepConfig.end.split(':').map(Number);
         const sleepStartMinutes = sH * 60 + sM;
         const sleepEndMinutes = eH * 60 + eM;
-
         let isSleeping = false;
         if (sleepStartMinutes > sleepEndMinutes) {
           isSleeping = currentTime >= sleepStartMinutes || currentTime < sleepEndMinutes;
         } else {
           isSleeping = currentTime >= sleepStartMinutes && currentTime < sleepEndMinutes;
         }
-
         if (!isSleeping) {
           const timer = setTimeout(() => setShowNotification(true), 5000);
           const expireTimer = setTimeout(() => setShowNotification(false), 75000);
-          return () => {
-            clearTimeout(timer);
-            clearTimeout(expireTimer);
-          };
+          return () => { clearTimeout(timer); clearTimeout(expireTimer); };
         }
       }
     };
     initDailyLogic();
   }, [sleepConfig, user]);
 
+  // Tab değişince içerik alanına scroll et
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
       if (!user) {
@@ -124,9 +118,15 @@ const ONEAppDemo = () => {
       setCameraOpen(true);
       return;
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveTab(tab);
+    // Feed dışında scroll en üste, feed'de de üste
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   };
+
+  // Feed tabında hero + content, diğerlerinde sadece content
+  const isFeedTab = activeTab === 'feed';
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -142,8 +142,6 @@ const ONEAppDemo = () => {
             <WorldHeatmap cities={mockCities} />
           </motion.div>
         );
-      case 'capture':
-        return null;
       case 'archive':
         return (
           <motion.div key="archive" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -152,11 +150,11 @@ const ONEAppDemo = () => {
         );
       case 'profile':
         return (
-          <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-4">
-            <ProfileScreen 
-              userProfile={user ? { ...mockUserProfile, email: user.email } : mockUserProfile} 
-              isPremium={isPremium} 
-              onUpgrade={() => setIsPremium(true)} 
+          <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <ProfileScreen
+              userProfile={user ? { ...mockUserProfile, email: user.email } : mockUserProfile}
+              isPremium={isPremium}
+              onUpgrade={() => setIsPremium(true)}
               sleepConfig={sleepConfig}
               onSleepChange={setSleepConfig}
             />
@@ -167,114 +165,169 @@ const ONEAppDemo = () => {
     }
   };
 
-  const tabs = [
-    { id: 'feed' as TabType, label: '🌍 Feed' },
-    { id: 'map' as TabType, label: '📍 Map' },
-    { id: 'capture' as TabType, label: '⭕ Capture' },
-    { id: 'archive' as TabType, label: '📅 Archive' },
-    { id: 'profile' as TabType, label: '👤 Profile' },
-  ];
-
   return (
     <div className="min-h-screen bg-[var(--bg-void)] overflow-x-hidden text-white">
+      {/* ─── SAYFA İÇERİĞİ ─── */}
       <div className="pb-28">
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10 pb-2 relative">
-          
-          <div className="absolute top-10 right-5 z-10 scale-90 origin-right flex items-center gap-3">
-            {lastCapturedVideo && (
-              <motion.button
-                initial={{ scale: 0, opacity: 0 }} 
-                animate={{ scale: 1, opacity: 1 }}
-                onClick={() => setShowVideoReview(true)}
-                className="w-12 h-12 rounded-lg border-2 border-[var(--accent-electric)] overflow-hidden bg-black shadow-lg"
+
+        {/* ─── HERO — Sadece Feed tabında görünür ─── */}
+        <AnimatePresence>
+          {isFeedTab && (
+            <motion.div
+              key="hero"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="px-5 pt-10 pb-2 relative"
+            >
+              {/* Sağ üst: Video önizleme + Login */}
+              <div className="absolute top-10 right-5 z-10 scale-90 origin-right flex items-center gap-3">
+                {lastCapturedVideo && (
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    onClick={() => setShowVideoReview(true)}
+                    className="w-12 h-12 rounded-lg border-2 border-[var(--accent-electric)] overflow-hidden bg-black shadow-lg"
+                  >
+                    <video src={lastCapturedVideo} autoPlay muted playsInline loop className="w-full h-full object-cover" />
+                  </motion.button>
+                )}
+                <LoginButton />
+              </div>
+
+              <h1
+                className="font-bebas leading-none"
+                style={{
+                  fontSize: 'clamp(72px, 20vw, 120px)',
+                  background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
               >
-                <video src={lastCapturedVideo} autoPlay muted playsInline loop className="w-full h-full object-cover" />
-              </motion.button>
-            )}
-            <LoginButton />
-          </div>
+                ONE
+              </h1>
+              <div className="flex justify-between items-center">
+                <p className="font-jetbrains text-[10px] tracking-[0.25em] text-[var(--text-ghost)] uppercase mt-1">
+                  3 seconds. No filter. Real.
+                </p>
+                {hasCapturedToday && (
+                  <span className="text-[9px] px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-500/10">
+                    COMPLETED
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <h1 className="font-bebas leading-none" style={{ fontSize: 'clamp(72px, 20vw, 120px)', background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            ONE
-          </h1>
-          <div className="flex justify-between items-center">
-            <p className="font-jetbrains text-[10px] tracking-[0.25em] text-[var(--text-ghost)] uppercase mt-1">
-              3 seconds. No filter. Real.
-            </p>
-            {hasCapturedToday && (
-              <span className="text-[9px] px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-500/10">
-                COMPLETED
-              </span>
-            )}
-          </div>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }} className="mt-6 px-5">
-          <StoryFlowBanner />
-        </motion.div>
-
-        <div className="mt-8 px-5">
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {tabs.map((tab) => (
-              <motion.button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={activeTab === tab.id
-                  ? 'flex-shrink-0 px-4 py-2 rounded-xl font-jetbrains text-xs font-bold tracking-wider uppercase bg-[var(--accent-electric)] text-[var(--bg-void)] shadow-[0_0_15px_rgba(0,217,255,0.4)]'
-                  : 'flex-shrink-0 px-4 py-2 rounded-xl font-jetbrains text-xs font-bold tracking-wider uppercase bg-[var(--bg-surface)] text-[var(--text-secondary)]'}
-                whileTap={{ scale: 0.95 }}
+        {/* ─── Feed dışı tablarda küçük başlık ─── */}
+        <AnimatePresence>
+          {!isFeedTab && (
+            <motion.div
+              key="mini-header"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="px-5 pt-8 pb-2 flex items-center justify-between"
+            >
+              <button
+                onClick={() => handleTabChange('feed')}
+                className="font-bebas text-3xl"
+                style={{
+                  background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
               >
-                {tab.label}
-              </motion.button>
-            ))}
-          </div>
-        </div>
+                ONE
+              </button>
+              <div className="flex items-center gap-3">
+                {lastCapturedVideo && (
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    onClick={() => setShowVideoReview(true)}
+                    className="w-10 h-10 rounded-lg border-2 border-[var(--accent-electric)] overflow-hidden bg-black shadow-lg"
+                  >
+                    <video src={lastCapturedVideo} autoPlay muted playsInline loop className="w-full h-full object-cover" />
+                  </motion.button>
+                )}
+                <LoginButton />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="mt-6 px-5">
+        {/* ─── StoryFlow Banner — Sadece Feed'de ─── */}
+        {isFeedTab && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="mt-4 px-5"
+          >
+            <StoryFlowBanner />
+          </motion.div>
+        )}
+
+        {/* ─── TAB İÇERİĞİ — Her zaman sayfanın üstünde, görünür alanda ─── */}
+        <div ref={contentRef} className="mt-4 px-5">
           <AnimatePresence mode="wait">
             {renderTabContent()}
           </AnimatePresence>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-[var(--border-subtle)] px-5 space-y-8">
-          <h2 className="font-bebas text-3xl">Component Showcase</h2>
-          <div className="space-y-3">
+        {/* ─── Emoji Showcase — Sadece Feed'de ─── */}
+        {isFeedTab && (
+          <div className="mt-10 pt-8 border-t border-[var(--border-subtle)] px-5 space-y-4">
             <h3 className="font-bebas text-lg text-[var(--accent-electric)]">Emoji Reactions</h3>
             <div className="p-5 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)]">
-              <EmojiReactionSystem reactionCounts={{ '❤️': 342, '😮': 89, '😂': 156, '🌍': 234, '🙏': 67 }} interactive={true} />
+              <EmojiReactionSystem
+                reactionCounts={{ '❤️': 342, '😮': 89, '😂': 156, '🌍': 234, '🙏': 67 }}
+                interactive={true}
+              />
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="mt-12 pt-6 border-t border-[var(--border-subtle)] px-5 text-center pb-4">
+        <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] px-5 text-center pb-4">
           <p className="font-jetbrains text-xs text-[var(--text-ghost)]">ONE — 3 seconds. No filter. Real.</p>
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-        <AppNavigation activeTab={activeTab} onTabChange={handleTabChange} hasNewMoments={showNotification} />
+      {/* ─── BOTTOM NAVIGATION — md:hidden kaldırıldı, her zaman görünür ─── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50">
+        <AppNavigation
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          hasNewMoments={showNotification}
+        />
       </div>
 
+      {/* ─── SPLASH ─── */}
       <AnimatePresence>
         {showSplash && <SplashScreen duration={2000} onComplete={() => setShowSplash(false)} />}
       </AnimatePresence>
 
+      {/* ─── BİLDİRİM ─── */}
       <AnimatePresence>
         {showNotification && user && (
-          <NotificationMoment 
-            isActive={true} 
+          <NotificationMoment
+            isActive={true}
             onCapture={() => {
               setShowNotification(false);
               setCameraOpen(true);
-            }} 
+            }}
           />
         )}
       </AnimatePresence>
 
+      {/* ─── HATA MESAJI ─── */}
       <AnimatePresence>
         {uploadError && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -290,20 +343,23 @@ const ONEAppDemo = () => {
 
       {showOnboarding && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
 
-      {/* ─── KAMERA (Tam Ekran) ─────────────────────────────── */}
+      {/* ─── KAMERA — Tam Ekran, alttan açılır ─── */}
       <AnimatePresence>
         {cameraOpen && (
-          <motion.div 
-            initial={{ y: "100%" }}
+          <motion.div
+            initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-[100] bg-black"
           >
+            {/* Kapat butonu */}
             <button
               onClick={() => { setCameraOpen(false); setActiveTab('feed'); }}
               className="absolute top-12 left-6 z-[110] w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white"
-            >✕</button>
+            >
+              ✕
+            </button>
 
             <CameraCapture
               onCaptureComplete={async ({ blob, location, timestamp }) => {
@@ -322,10 +378,10 @@ const ONEAppDemo = () => {
                   await uploadMoment(file, location, secureDate.toISOString());
                   setHasCapturedToday(true);
 
+                  // 8 saniye sonra otomatik kapat
                   setTimeout(() => setShowVideoReview(false), 8000);
-
                 } catch (err: any) {
-                  setUploadError("Upload failed: " + (err.message || "Unknown error"));
+                  setUploadError('Upload failed: ' + (err.message || 'Unknown error'));
                   setLastCapturedVideo(null);
                   setShowVideoReview(false);
                 } finally {
@@ -337,7 +393,7 @@ const ONEAppDemo = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── VİDEO REVIEW — Uygulama İçi Kart ─────────────── */}
+      {/* ─── VİDEO REVIEW — Kayıt sonrası uygulama içi görünüm ─── */}
       <AnimatePresence>
         {showVideoReview && lastCapturedVideo && (
           <motion.div
@@ -351,7 +407,7 @@ const ONEAppDemo = () => {
               initial={{ scale: 0.85, y: 40 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.85, y: 40 }}
-              transition={{ type: "spring", damping: 20, stiffness: 260 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 260 }}
               className="relative w-full max-w-sm rounded-3xl overflow-hidden"
               style={{
                 border: '1.5px solid rgba(0,217,255,0.35)',
@@ -359,7 +415,7 @@ const ONEAppDemo = () => {
                 height: '70vh',
               }}
             >
-              {/* Video — fixed height, object-cover */}
+              {/* Video */}
               <video
                 key={lastCapturedVideo}
                 src={lastCapturedVideo}
@@ -367,14 +423,15 @@ const ONEAppDemo = () => {
                 loop
                 muted
                 playsInline
+                controls
                 className="absolute inset-0 w-full h-full object-cover"
               />
 
-              {/* Overlay gradient */}
+              {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70 pointer-events-none" />
 
               {/* Üst etiket */}
-              <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
+              <div className="absolute top-4 left-0 right-0 flex justify-center z-10 pointer-events-none">
                 <span
                   className="text-[10px] tracking-[0.3em] uppercase font-light px-3 py-1 rounded-full"
                   style={{
@@ -389,7 +446,7 @@ const ONEAppDemo = () => {
               </div>
 
               {/* Alt badge */}
-              <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col items-center gap-2 z-10">
+              <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col items-center gap-2 z-10 pointer-events-none">
                 <div
                   className="px-5 py-2 rounded-full font-bold uppercase tracking-widest text-sm"
                   style={{
@@ -400,12 +457,11 @@ const ONEAppDemo = () => {
                 >
                   ✓ REALITY CAPTURED
                 </div>
-                {uploading && (
+                {uploading ? (
                   <p className="text-[10px] text-cyan-400 font-jetbrains animate-pulse uppercase tracking-widest">
                     Yükleniyor...
                   </p>
-                )}
-                {!uploading && (
+                ) : (
                   <p className="text-[10px] text-white/50 font-jetbrains uppercase tracking-widest">
                     Bugünkü anın kaydedildi
                   </p>
