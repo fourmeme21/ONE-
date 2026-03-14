@@ -66,6 +66,8 @@ const ONEAppDemo = () => {
   useEffect(() => {
     setHasCapturedToday(false);
   }, [user]);
+
+  const [sleepConfig, setSleepConfig] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('one_sleep_settings');
       return saved ? JSON.parse(saved) : { start: "23:00", end: "08:00" };
