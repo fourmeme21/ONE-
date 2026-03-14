@@ -29,10 +29,9 @@ export default function LoginButton() {
           access_type: 'offline',
           prompt: 'select_account',
         }
-        // redirectTo'yu sildik, Supabase panelindeki Site URL'i kullanacak.
       },
     });
-    if (error) console.error("Giriş hatası:", error.message);
+    if (error) console.error("Login error:", error.message);
   };
 
   const handleLogout = async () => {
@@ -41,18 +40,18 @@ export default function LoginButton() {
   };
 
   if (loading) return (
-    <div style={{ color: '#00D9FF', padding: '12px', textAlign: 'center' }}>⏳ Yükleniyor...</div>
+    <div style={{ color: '#00D9FF', padding: '12px', textAlign: 'center' }}>⏳ Loading...</div>
   );
 
   if (user) return (
     <div style={{ padding: '16px', backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px solid #00D9FF', textAlign: 'center' }}>
-      <p style={{ color: '#00D9FF', fontWeight: 'bold', marginBottom: '8px' }}>👋 {user.user_metadata?.full_name || 'Kullanıcı'}</p>
+      <p style={{ color: '#00D9FF', fontWeight: 'bold', marginBottom: '8px' }}>👋 {user.user_metadata?.full_name || 'User'}</p>
       <p style={{ color: '#888', fontSize: '12px', marginBottom: '12px' }}>{user.email}</p>
       <button
         onClick={handleLogout}
         style={{ backgroundColor: '#FF006E', color: '#fff', padding: '8px 20px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
       >
-        Çıkış Yap
+        Sign Out
       </button>
     </div>
   );
@@ -62,7 +61,7 @@ export default function LoginButton() {
       onClick={handleLogin}
       style={{ backgroundColor: '#00D9FF', color: '#000', padding: '12px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer', width: '100%' }}
     >
-      🔑 Google ile Giriş Yap
+      🔑 Sign in with Google
     </button>
   );
 }
