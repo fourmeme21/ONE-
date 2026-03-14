@@ -117,7 +117,10 @@ const ONEAppDemo = () => {
         setUploadError("Giriş yapmadan gerçekliği yakalayamazsınız.");
         return;
       }
-      if (hasCapturedToday) return;
+      if (hasCapturedToday) {
+        setUploadError("Bugünkü anını zaten yakaladın. Yarın tekrar bekleyeceğiz. 🌍");
+        return;
+      }
       setCameraOpen(true);
       return;
     }
@@ -386,6 +389,7 @@ const ONEAppDemo = () => {
                 // 4. Supabase upload
                 try {
                   setUploading(true);
+                  // webm veya mp4 — blob.type'tan al
                   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
                   const file = new File([blob], `one_${Date.now()}.${ext}`, { type: blob.type });
                   const secureDate = timestamp instanceof Date ? timestamp : new Date();
