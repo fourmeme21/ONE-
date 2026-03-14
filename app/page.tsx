@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { uploadMoment, checkTodayCapture, supabase } from '@/lib/supabase'; 
 
@@ -32,9 +32,26 @@ const ONEAppDemo = () => {
   const [lastCapturedVideo, setLastCapturedVideo] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-
-  // Kamera kapandıktan sonra uygulama içinde gösterilecek video önizlemesi
   const [showVideoReview, setShowVideoReview] = useState(false);
+
+  // SORUN 1 DÜZELTMESİ: Scroll sırasında yanlışlıkla kamera açılmasını engellemek için
+  // Son dokunma zamanını takip ediyoruz
+  const lastTapTimeRef = useRef<number>(0);
+  const isScrollingRef = useRef<boolean>(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Scroll başladığında flag'i set et
+  useEffect(() => {
+    const handleScroll = () => {
+      isScrollingRef.current = true;
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Auth Session Management
   useEffect(() => {
@@ -96,8 +113,16 @@ const ONEAppDemo = () => {
     initDailyLogic();
   }, [sleepConfig, user]);
 
+  // SORUN 1 DÜZELTMESİ: Scroll sırasında kamera açılmasını engelle
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
+      // Scroll sırasında veya son 300ms içinde tetiklendiyse iptal et
+      if (isScrollingRef.current) return;
+      
+      const now = Date.now();
+      if (now - lastTapTimeRef.current < 300) return;
+      lastTapTimeRef.current = now;
+
       if (!user) {
         setUploadError("Giriş yapmadan gerçekliği yakalayamazsınız.");
         return;
@@ -162,7 +187,6 @@ const ONEAppDemo = () => {
         <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10 pb-2 relative">
           
           <div className="absolute top-10 right-5 z-10 scale-90 origin-right flex items-center gap-3">
-            {/* Çekilen video küçük thumbnail — tıklanınca önizleme açılır */}
             {lastCapturedVideo && (
               <motion.button
                 initial={{ scale: 0, opacity: 0 }} 
@@ -170,7 +194,7 @@ const ONEAppDemo = () => {
                 onClick={() => setShowVideoReview(true)}
                 className="w-12 h-12 rounded-lg border-2 border-[var(--accent-electric)] overflow-hidden bg-black shadow-lg"
               >
-                <video src={lastCapturedVideo} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                <video src={lastCapturedVideo} autoPlay muted playsInline loop className="w-full h-full object-cover" />
               </motion.button>
             )}
             <LoginButton />
@@ -288,7 +312,6 @@ const ONEAppDemo = () => {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-[100] bg-black"
           >
-            {/* Kapat butonu */}
             <button
               onClick={() => { setCameraOpen(false); setActiveTab('feed'); }}
               className="absolute top-12 left-6 z-[110] w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white"
@@ -300,23 +323,20 @@ const ONEAppDemo = () => {
                   setUploading(true);
                   setUploadError(null);
 
-                  // Blob → URL → uygulama içinde göster
                   const videoUrl = URL.createObjectURL(blob);
                   setLastCapturedVideo(videoUrl);
 
-                  // Kamerayı kapat, feed'e dön, video review aç
                   setCameraOpen(false);
                   setActiveTab('feed');
                   setShowVideoReview(true);
 
-                  // Arkaplanda yüklemeye devam et
                   const secureDate = timestamp instanceof Date ? timestamp : new Date();
                   const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
                   await uploadMoment(file, location, secureDate.toISOString());
                   setHasCapturedToday(true);
 
-                  // 5 saniye sonra video review'i kapat
-                  setTimeout(() => setShowVideoReview(false), 5000);
+                  // 8 saniye sonra video review'i kapat
+                  setTimeout(() => setShowVideoReview(false), 8000);
 
                 } catch (err: any) {
                   setUploadError("Upload failed: " + (err.message || "Unknown error"));
@@ -352,18 +372,17 @@ const ONEAppDemo = () => {
                 boxShadow: '0 0 60px rgba(0,217,255,0.15), 0 24px 48px rgba(0,0,0,0.6)',
               }}
             >
-              {/* Video */}
               <div className="relative aspect-[9/16] bg-black max-h-[65vh]">
+                {/* SORUN 3 DÜZELTMESİ: muted={true} — mobilde autoplay için zorunlu */}
                 <video
                   src={lastCapturedVideo}
                   autoPlay
                   loop
-                  muted={false}
+                  muted
                   playsInline
                   className="w-full h-full object-cover"
                 />
 
-                {/* Üst: ONE · RAW REALITY etiketi */}
                 <div className="absolute top-4 left-0 right-0 flex justify-center">
                   <span
                     className="text-[10px] tracking-[0.3em] uppercase font-light px-3 py-1 rounded-full"
@@ -378,7 +397,6 @@ const ONEAppDemo = () => {
                   </span>
                 </div>
 
-                {/* Alt: REALITY CAPTURED badge */}
                 <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col items-center gap-2"
                   style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }}
                 >
@@ -405,7 +423,6 @@ const ONEAppDemo = () => {
                 </div>
               </div>
 
-              {/* Kapat butonu */}
               <button
                 onClick={() => setShowVideoReview(false)}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
