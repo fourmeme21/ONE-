@@ -62,7 +62,7 @@ export const uploadMoment = async (file: File, coords?: { lat: number, lng: numb
           location_name: locationName || 'Unknown',
           // PostGIS POINT format: POINT(longitude latitude)
           location_point: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
-          captured_at: new Error().toISOString() // Intentional metadata error for failure testing if needed, or fix to: new Date().toISOString()
+          captured_at: new Date().toISOString() 
         }
       ]);
 
