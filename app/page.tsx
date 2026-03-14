@@ -31,13 +31,20 @@ const ONEAppDemo = () => {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
 
-  // Kullanıcı tarafından belirlenen uyku saatleri (Local veya DB'den çekilebilir)
-  const [sleepConfig, setSleepConfig] = useState({
-    start: "23:00",
-    end: "08:00"
+  // V3.1: Kullanıcı tercihlerini hafızadan yükle veya varsayılanı ata
+  const [sleepConfig, setSleepConfig] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('one_sleep_settings');
+      return saved ? JSON.parse(saved) : { start: "23:00", end: "08:00" };
+    }
+    return { start: "23:00", end: "08:00" };
   });
 
-  // GÜNDE BİR SEFER VE UYKU SAATİ KONTROLÜ
+  // Ayarlar değiştikçe yerel hafızayı güncelle
+  useEffect(() => {
+    localStorage.setItem('one_sleep_settings', JSON.stringify(sleepConfig));
+  }, [sleepConfig]);
+
   useEffect(() => {
     const initDailyLogic = async () => {
       const captured = await checkTodayCapture();
@@ -60,10 +67,10 @@ const ONEAppDemo = () => {
         }
 
         if (!isSleeping) {
-          // Rastgele bir tetikleme simülasyonu
           const timer = setTimeout(() => setShowNotification(true), 5000);
-          // 10 DAKİKA KURALI: Bildirim 10 dakika sonra aktifliğini yitirir
-          const expireTimer = setTimeout(() => setShowNotification(false), 600000);
+          
+          // V3.1: 75 SANİYE KURALI (75.000 ms) - Saf Gerçeklik Penceresi
+          const expireTimer = setTimeout(() => setShowNotification(false), 75000);
           
           return () => {
             clearTimeout(timer);
@@ -179,7 +186,6 @@ const ONEAppDemo = () => {
           </AnimatePresence>
         </div>
 
-        {/* Component Showcase - Alt Kısım */}
         <div className="mt-12 pt-8 border-t border-[var(--border-subtle)] px-5 space-y-8">
           <h2 className="font-bebas text-3xl">Component Showcase</h2>
           <div className="space-y-3">
@@ -217,7 +223,6 @@ const ONEAppDemo = () => {
 
       {showOnboarding && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
 
-      {/* KAMERA OVERLAY - SEAMLESS TRANSITION */}
       <AnimatePresence>
         {cameraOpen && (
           <motion.div 
@@ -229,7 +234,6 @@ const ONEAppDemo = () => {
           >
             <button
               onClick={() => { setCameraOpen(false); setActiveTab('feed'); }}
-              aria-label="Close"
               className="absolute top-12 left-6 z-[110] w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white"
             >✕</button>
 
