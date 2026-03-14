@@ -33,17 +33,17 @@ export const checkTodayCapture = async (): Promise<boolean> => {
 }
 
 /**
- * Uploads the captured reality (file) to Storage and saves metadata to the Database.
- * Consistent with arguments used in app/page.tsx
+ * Uploads the captured reality (file) to Storage (posts bucket) 
+ * and saves metadata to the Database (moments table).
  */
 export const uploadMoment = async (file: File, location?: any, timestamp?: string) => {
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `one_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     
-    // 1. Upload the file to Supabase Storage 'moments' bucket
+    // 1. Upload the file to Supabase Storage 'posts' bucket
     const { data: storageData, error: storageError } = await supabase.storage
-      .from('moments')
+      .from('posts') // Updated to 'posts'
       .upload(fileName, file, { 
         upsert: true,
         cacheControl: '3600'
@@ -67,7 +67,6 @@ export const uploadMoment = async (file: File, location?: any, timestamp?: strin
 
     if (dbError) {
        console.warn("Metadata sync failed:", dbError.message);
-       // We don't block the user if only DB metadata fails, but it's logged for maintenance
     }
 
     alert("CONGRATS: Your reality has been captured successfully!");
