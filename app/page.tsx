@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { uploadMoment, checkTodayCapture } from '@/lib/supabase'; 
+import { uploadMoment, checkTodayCapture, supabase } from '@/lib/supabase'; 
 
 import SplashScreen from '@/components/ONE/SplashScreen';
 import NotificationMoment from '@/components/ONE/NotificationMoment';
@@ -32,6 +32,20 @@ const ONEAppDemo = () => {
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
   const [lastCapturedVideo, setLastCapturedVideo] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Auth Session Management
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const [sleepConfig, setSleepConfig] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -47,6 +61,7 @@ const ONEAppDemo = () => {
 
   useEffect(() => {
     const initDailyLogic = async () => {
+      if (!user) return; // User must be logged in for daily checks
       const captured = await checkTodayCapture();
       setHasCapturedToday(captured);
 
@@ -78,10 +93,14 @@ const ONEAppDemo = () => {
       }
     };
     initDailyLogic();
-  }, [sleepConfig]);
+  }, [sleepConfig, user]);
 
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
+      if (!user) {
+        setUploadError("Giriş yapmadan gerçekliği yakalayamazsınız.");
+        return;
+      }
       if (hasCapturedToday) {
         return;
       }
@@ -117,7 +136,7 @@ const ONEAppDemo = () => {
         return (
           <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-4">
             <ProfileScreen 
-              userProfile={mockUserProfile} 
+              userProfile={user ? { ...mockUserProfile, email: user.email } : mockUserProfile} 
               isPremium={isPremium} 
               onUpgrade={() => setIsPremium(true)} 
               sleepConfig={sleepConfig}
@@ -222,7 +241,7 @@ const ONEAppDemo = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showNotification && (
+        {showNotification && user && (
           <NotificationMoment 
             isActive={true} 
             onCapture={() => {
@@ -242,7 +261,7 @@ const ONEAppDemo = () => {
             className="fixed top-24 left-5 right-5 z-[200] p-4 bg-red-500/90 backdrop-blur-md rounded-2xl border border-white/20 text-white font-jetbrains text-xs shadow-2xl"
           >
             <div className="flex justify-between items-start">
-              <p>Capture failed: {uploadError}</p>
+              <p>{uploadError}</p>
               <button onClick={() => setUploadError(null)}>✕</button>
             </div>
           </motion.div>
@@ -277,7 +296,7 @@ const ONEAppDemo = () => {
                   await uploadMoment(file, location, timestamp);
                   setHasCapturedToday(true);
                 } catch (err: any) {
-                  setUploadError(err.message || "Unknown error during upload process");
+                  setUploadError("Upload failed: " + (err.message || "Unknown error"));
                   setLastCapturedVideo(null);
                 } finally {
                   setUploading(false);
