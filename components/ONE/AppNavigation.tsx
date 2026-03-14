@@ -27,8 +27,11 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
           return (
             <motion.button
               key={tab.id}
-              onClick={() => onTabChange?.(tab.id)}
-              className="relative flex flex-col items-center justify-center gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTabChange?.(tab.id);
+              }}
+              className="relative flex flex-col items-center justify-center gap-1 touch-none"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
