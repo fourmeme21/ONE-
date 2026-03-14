@@ -30,6 +30,15 @@ const ONEAppDemo = () => {
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
 
+  // Tüm tab değişimlerini bu fonksiyondan geçir
+  const handleTabChange = (tab: TabType) => {
+    if (tab === 'capture') {
+      setCameraOpen(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'feed':
@@ -45,8 +54,6 @@ const ONEAppDemo = () => {
           </motion.div>
         );
       case 'capture':
-        // Kamera overlay açılır, tab içeriği boş kalır
-        if (!cameraOpen) setCameraOpen(true);
         return null;
       case 'archive':
         return (
@@ -98,7 +105,7 @@ const ONEAppDemo = () => {
             {tabs.map((tab) => (
               <motion.button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={activeTab === tab.id ? 'flex-shrink-0 px-4 py-2 rounded-xl font-jetbrains text-xs font-bold tracking-wider uppercase bg-[var(--accent-electric)] text-[var(--bg-void)]' : 'flex-shrink-0 px-4 py-2 rounded-xl font-jetbrains text-xs font-bold tracking-wider uppercase bg-[var(--bg-surface)] text-[var(--text-secondary)]'}
                 whileTap={{ scale: 0.95 }}
               >
@@ -134,20 +141,14 @@ const ONEAppDemo = () => {
       </div>
 
       <div className="md:hidden">
-        <AppNavigation
-          activeTab={activeTab}
-          onTabChange={(tab) => {
-            if (tab === 'capture') { setCameraOpen(true); return; }
-            setActiveTab(tab);
-          }}
-          hasNewMoments={false}
-        />
+        <AppNavigation activeTab={activeTab} onTabChange={handleTabChange} hasNewMoments={false} />
       </div>
 
       {showSplash && <SplashScreen duration={2000} onComplete={() => setShowSplash(false)} />}
       {showNotification && <NotificationMoment isActive={true} onCapture={() => setShowNotification(false)} />}
       {showOnboarding && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
 
+      {/* KAMERA OVERLAY */}
       {cameraOpen && (
         <div className="fixed inset-0 z-[100]">
           <button
@@ -159,7 +160,7 @@ const ONEAppDemo = () => {
               left: '16px',
               zIndex: 110,
               color: 'rgba(255,255,255,0.8)',
-              fontSize: '20px',
+              fontSize: '18px',
               background: 'rgba(0,0,0,0.5)',
               border: 'none',
               borderRadius: '50%',
@@ -171,6 +172,7 @@ const ONEAppDemo = () => {
               cursor: 'pointer',
             }}
           >✕</button>
+
           <CameraCapture
             onCaptureComplete={async ({ blob, location, timestamp }: { blob: Blob; location: { lat: number; long: number } | null; timestamp: string }) => {
               try {
@@ -186,6 +188,7 @@ const ONEAppDemo = () => {
               }
             }}
           />
+
           {uploading && (
             <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[120]">
               <p className="font-jetbrains text-sm text-[var(--accent-electric)] animate-pulse">Yükleniyor...</p>
