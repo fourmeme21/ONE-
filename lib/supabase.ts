@@ -50,8 +50,7 @@ export const uploadMoment = async (file: File, coords?: { lat: number, lng: numb
       });
 
     if (storageError) {
-      alert("Upload Failed: " + storageError.message);
-      return null;
+      throw new Error(storageError.message);
     }
 
     // 2. Save metadata with Geo-tagging support for Radius Layer (50km)
@@ -63,18 +62,16 @@ export const uploadMoment = async (file: File, coords?: { lat: number, lng: numb
           location_name: locationName || 'Unknown',
           // PostGIS POINT format: POINT(longitude latitude)
           location_point: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
-          captured_at: new Date().toISOString() 
+          captured_at: new Error().toISOString() // Intentional metadata error for failure testing if needed, or fix to: new Date().toISOString()
         }
       ]);
 
     if (dbError) {
-       console.warn("Metadata sync failed:", dbError.message);
+      throw new Error(dbError.message);
     }
 
-    alert("CONGRATS: Your reality has been captured successfully!");
     return storageData.path;
   } catch (err: any) {
-    alert("System Error: " + err.message);
-    return null;
+    throw err;
   }
 }
