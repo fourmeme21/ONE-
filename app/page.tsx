@@ -114,11 +114,11 @@ const ONEAppDemo = () => {
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
       if (!user) {
-        setUploadError("Giriş yapmadan gerçekliği yakalayamazsınız.");
+        setUploadError("Sign in to capture your reality.");
         return;
       }
       if (hasCapturedToday) {
-        setUploadError("Bugünkü anını zaten yakaladın. Yarın tekrar bekleyeceğiz. 🌍");
+        setUploadError("You already captured today's moment. See you tomorrow. 🌍");
         return;
       }
       setCameraOpen(true);
@@ -334,10 +334,10 @@ const ONEAppDemo = () => {
       <AnimatePresence>
         {uploadError && (
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 80 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed top-24 left-5 right-5 z-[200] p-4 bg-red-500/90 backdrop-blur-md rounded-2xl border border-white/20 text-white font-jetbrains text-xs shadow-2xl"
+            exit={{ opacity: 0, y: 80 }}
+            className="fixed bottom-28 left-5 right-5 z-[200] p-4 bg-red-500/90 backdrop-blur-md rounded-2xl border border-white/20 text-white font-jetbrains text-xs shadow-2xl"
           >
             <div className="flex justify-between items-start gap-3">
               <p>{uploadError}</p>
@@ -397,7 +397,7 @@ const ONEAppDemo = () => {
                   setHasCapturedToday(true);
                   setUploadSuccess(true);
                 } catch (err: any) {
-                  setUploadError('Upload hatası: ' + (err.message || 'Bilinmeyen hata'));
+                  setUploadError('Upload failed: ' + (err.message || 'Unknown error'));
                 } finally {
                   setUploading(false);
                 }
@@ -456,7 +456,7 @@ const ONEAppDemo = () => {
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-xs text-cyan-400 font-jetbrains tracking-widest uppercase">Hazırlanıyor...</p>
+                    <p className="text-xs text-cyan-400 font-jetbrains tracking-widest uppercase">Preparing...</p>
                   </div>
                 </div>
               )}
@@ -515,15 +515,15 @@ const ONEAppDemo = () => {
               {uploading && (
                 <>
                   <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                  <p className="text-xs text-cyan-400 font-jetbrains tracking-widest uppercase">Supabase'e yükleniyor...</p>
+                  <p className="text-xs text-cyan-400 font-jetbrains tracking-widest uppercase">Uploading to Supabase...</p>
                 </>
               )}
               {!uploading && uploadSuccess && (
                 <>
                   <span className="text-green-400 text-lg shrink-0">✓</span>
                   <div>
-                    <p className="text-xs text-green-400 font-jetbrains tracking-widest uppercase font-bold">Kaydedildi</p>
-                    <p className="text-[10px] text-white/40 font-jetbrains mt-0.5">Supabase Storage & DB'ye yüklendi</p>
+                    <p className="text-xs text-green-400 font-jetbrains tracking-widest uppercase font-bold">Saved</p>
+                    <p className="text-[10px] text-white/40 font-jetbrains mt-0.5">Uploaded to Supabase Storage & DB</p>
                   </div>
                 </>
               )}
@@ -531,13 +531,13 @@ const ONEAppDemo = () => {
                 <>
                   <span className="text-red-400 text-lg shrink-0">✗</span>
                   <div>
-                    <p className="text-xs text-red-400 font-jetbrains tracking-widest uppercase font-bold">Hata</p>
+                    <p className="text-xs text-red-400 font-jetbrains tracking-widest uppercase font-bold">Error</p>
                     <p className="text-[10px] text-white/40 font-jetbrains mt-0.5">{uploadError}</p>
                   </div>
                 </>
               )}
               {!uploading && !uploadSuccess && !uploadError && (
-                <p className="text-xs text-white/40 font-jetbrains tracking-widest uppercase">Bekliyor...</p>
+                <p className="text-xs text-white/40 font-jetbrains tracking-widest uppercase">Waiting...</p>
               )}
             </motion.div>
           </motion.div>
