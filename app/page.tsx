@@ -30,8 +30,9 @@ const ONEAppDemo = () => {
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
+  const [lastCapturedVideo, setLastCapturedVideo] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // V3.1: Kullanıcı tercihlerini hafızadan yükle veya varsayılanı ata
   const [sleepConfig, setSleepConfig] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('one_sleep_settings');
@@ -40,7 +41,6 @@ const ONEAppDemo = () => {
     return { start: "23:00", end: "08:00" };
   });
 
-  // Ayarlar değiştikçe yerel hafızayı güncelle
   useEffect(() => {
     localStorage.setItem('one_sleep_settings', JSON.stringify(sleepConfig));
   }, [sleepConfig]);
@@ -68,8 +68,6 @@ const ONEAppDemo = () => {
 
         if (!isSleeping) {
           const timer = setTimeout(() => setShowNotification(true), 5000);
-          
-          // V3.1: 75 SANİYE KURALI (75.000 ms) - Saf Gerçeklik Penceresi
           const expireTimer = setTimeout(() => setShowNotification(false), 75000);
           
           return () => {
@@ -85,7 +83,6 @@ const ONEAppDemo = () => {
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
       if (hasCapturedToday) {
-        alert("Today's reality is already captured.");
         return;
       }
       setCameraOpen(true);
@@ -146,8 +143,16 @@ const ONEAppDemo = () => {
       <div className="pb-28">
         <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10 pb-2 relative">
           
-          {/* LOGIN BUTTON: POSITIONAL UPDATE TO TOP RIGHT */}
-          <div className="absolute top-10 right-5 z-10 scale-90 origin-right">
+          <div className="absolute top-10 right-5 z-10 scale-90 origin-right flex items-center gap-3">
+            {lastCapturedVideo && (
+              <motion.div 
+                initial={{ scale: 0, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-12 h-12 rounded-lg border-2 border-[var(--accent-electric)] overflow-hidden bg-black shadow-lg"
+              >
+                <video src={lastCapturedVideo} autoPlay muted loop className="w-full h-full object-cover" />
+              </motion.div>
+            )}
             <LoginButton />
           </div>
 
@@ -228,6 +233,22 @@ const ONEAppDemo = () => {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {uploadError && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="fixed top-24 left-5 right-5 z-[200] p-4 bg-red-500/90 backdrop-blur-md rounded-2xl border border-white/20 text-white font-jetbrains text-xs shadow-2xl"
+          >
+            <div className="flex justify-between items-start">
+              <p>Capture failed: {uploadError}</p>
+              <button onClick={() => setUploadError(null)}>✕</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {showOnboarding && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
 
       <AnimatePresence>
@@ -248,11 +269,16 @@ const ONEAppDemo = () => {
               onCaptureComplete={async ({ blob, location, timestamp }) => {
                 try {
                   setUploading(true);
+                  setUploadError(null);
+                  const videoUrl = URL.createObjectURL(blob);
+                  setLastCapturedVideo(videoUrl);
+                  
                   const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
                   await uploadMoment(file, location, timestamp);
                   setHasCapturedToday(true);
-                } catch (err) {
-                  console.error('Upload Error:', err);
+                } catch (err: any) {
+                  setUploadError(err.message || "Unknown error during upload process");
+                  setLastCapturedVideo(null);
                 } finally {
                   setUploading(false);
                   setCameraOpen(false);
