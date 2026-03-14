@@ -376,33 +376,28 @@ const ONEAppDemo = () => {
             <CameraCapture
               onCaptureComplete={async ({ blob, location, timestamp }) => {
                 // 1. Kamerayı kapat, feed'e dön
+                // 1. Kamerayı kapat
                 setCameraOpen(false);
                 setActiveTab('feed');
-
-                // 2. Blob'u sakla, review'i aç
-                setLastCapturedBlob(blob);
-                setLastCapturedVideo(null); // önce temizle
+                setLastCapturedVideo(null);
                 setUploadError(null);
                 setUploadSuccess(false);
                 setShowVideoReview(true);
+                setUploading(true);
 
-                // 3. Kısa gecikme sonra URL oluştur — kamera stream kapanmasını bekle
-                setTimeout(() => {
-                  const url = URL.createObjectURL(blob);
-                  setLastCapturedVideo(url);
-                }, 300);
-
-                // 4. Supabase upload
+                // 2. Upload et, Supabase public URL al — blob URL Android'de siyah çıkıyor
                 try {
-                  setUploading(true);
-                  // webm veya mp4 — blob.type'tan al
                   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
                   const file = new File([blob], `one_${Date.now()}.${ext}`, { type: blob.type });
                   const secureDate = timestamp instanceof Date ? timestamp : new Date();
-                  await uploadMoment(file, location, secureDate.toISOString());
+                  const publicUrl = await uploadMoment(file, location, secureDate.toISOString());
+                  setLastCapturedVideo(publicUrl);
                   setHasCapturedToday(true);
                   setUploadSuccess(true);
                 } catch (err: any) {
+                  // Fallback: blob URL
+                  const url = URL.createObjectURL(blob);
+                  setLastCapturedVideo(url);
                   setUploadError('Upload failed: ' + (err.message || 'Unknown error'));
                 } finally {
                   setUploading(false);
@@ -436,7 +431,7 @@ const ONEAppDemo = () => {
               }}
             >
               {/* Video — src hazır değilse spinner göster */}
-              {lastCapturedVideo ? (
+              {lastCapturedVideo && !uploading ? (
                 <div className="absolute inset-0 z-10" onClick={() => {
                   if (reviewVideoRef.current) {
                     reviewVideoRef.current.muted = !reviewVideoRef.current.muted;
@@ -467,7 +462,6 @@ const ONEAppDemo = () => {
                       objectFit: 'cover',
                     }}
                   />
-                  {/* Tap to unmute hint */}
                   <div className="absolute bottom-16 left-0 right-0 flex justify-center pointer-events-none">
                     <span className="text-[10px] text-white/50 font-jetbrains tracking-widest uppercase bg-black/40 px-3 py-1 rounded-full">
                       🔇 Tap for sound
