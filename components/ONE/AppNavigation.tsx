@@ -1,4 +1,4 @@
-'use client';
+;'use client';
 
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
@@ -35,10 +35,9 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
 
-    // 15px'den fazla hareket varsa scroll sayılır, tıklama iptal edilir
     if (deltaY > 15 || deltaX > 15) return;
 
-    e.preventDefault();
+    // e.preventDefault() KALDIRILDI — Android'de butonu kilitleyor
     e.stopPropagation();
     didFire.current = true;
     onTabChange?.(tabId);
@@ -48,7 +47,6 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     e: React.MouseEvent,
     tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile'
   ) => {
-    // Touch zaten tetiklediyse onClick'i yoksay
     if (didFire.current) {
       didFire.current = false;
       return;
