@@ -15,7 +15,7 @@ export const checkTodayCapture = async (): Promise<boolean> => {
     const today = new Date().toISOString().split('T')[0]; 
     
     const { data, error } = await supabase
-      .from('moments')
+      .from('posts') // Table name changed from moments to posts
       .select('id')
       .gte('created_at', today)
       .limit(1);
@@ -34,7 +34,8 @@ export const checkTodayCapture = async (): Promise<boolean> => {
 
 /**
  * Uploads the captured reality (file) to Storage (posts bucket) 
- * and saves metadata to the Database (moments table).
+ * and saves metadata to the Database (posts table).
+ * Consistent with arguments used in app/page.tsx
  */
 export const uploadMoment = async (file: File, location?: any, timestamp?: string) => {
   try {
@@ -43,7 +44,7 @@ export const uploadMoment = async (file: File, location?: any, timestamp?: strin
     
     // 1. Upload the file to Supabase Storage 'posts' bucket
     const { data: storageData, error: storageError } = await supabase.storage
-      .from('posts') // Updated to 'posts'
+      .from('posts') // Bucket name is posts
       .upload(fileName, file, { 
         upsert: true,
         cacheControl: '3600'
@@ -54,9 +55,9 @@ export const uploadMoment = async (file: File, location?: any, timestamp?: strin
       return null;
     }
 
-    // 2. Save metadata (path, location, timestamp) to the 'moments' table
+    // 2. Save metadata (path, location, timestamp) to the 'posts' table
     const { error: dbError } = await supabase
-      .from('moments')
+      .from('posts') // Table name changed from moments to posts
       .insert([
         { 
           file_path: storageData.path, 
@@ -67,6 +68,8 @@ export const uploadMoment = async (file: File, location?: any, timestamp?: strin
 
     if (dbError) {
        console.warn("Metadata sync failed:", dbError.message);
+       // Note: We don't block the user if only DB metadata fails, 
+       // but it's logged for maintenance since the file is already in storage.
     }
 
     alert("CONGRATS: Your reality has been captured successfully!");
