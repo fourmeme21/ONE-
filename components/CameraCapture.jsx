@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useMediaRecorder } from "@/hooks/useMediaRecorder";
 
 export default function CameraCapture({ onCaptureComplete }) {
   const videoRef = useRef(null);
+  // V3.1: Kamera yönü state'i (user = ön, environment = arka)
+  const [facingMode, setFacingMode] = useState("user");
 
   // Stream hazır olunca doğrudan video elementine bağla
   const handleStreamReady = useCallback((stream) => {
@@ -17,33 +19,42 @@ export default function CameraCapture({ onCaptureComplete }) {
     useMediaRecorder({
       onCaptureComplete,
       onStreamReady: handleStreamReady,
+      facingMode: facingMode, // Hook'a yönü gönderiyoruz
     });
 
-  // Açılınca önizleme başlat, kapanınca durdur
+  // Kamera yönü değişince veya ilk açılışta önizlemeyi başlat
   useEffect(() => {
     startPreview();
     return () => stopPreview();
-  }, []); // eslint-disable-line
+  }, [facingMode, startPreview, stopPreview]);
+
+  // Kamera değiştirme fonksiyonu
+  const toggleCamera = () => {
+    if (isRecording) return; // Kayıt sırasında değişimi engelle
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
 
   return (
     <div
       style={{ height: "100dvh" }}
       className="relative w-full overflow-hidden bg-black"
     >
-      {/* Ham kamera görüntüsü — sıfır filtre */}
+      {/* Raw Camera Feed */}
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
+        className={`absolute inset-0 w-full h-full object-cover ${
+          facingMode === "user" ? "scale-x-[-1]" : ""
+        }`}
         style={{ filter: "none", WebkitFilter: "none" }}
       />
 
-      {/* Karanlık kenar gradyanı */}
+      {/* Ambient Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
-      {/* Üst başlık */}
+      {/* Header Info */}
       <div
         className="absolute top-0 left-0 right-0 flex items-center justify-center z-10"
         style={{ paddingTop: "env(safe-area-inset-top, 16px)", paddingBottom: "12px" }}
@@ -56,7 +67,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </span>
       </div>
 
-      {/* Geri sayım overlay */}
+      {/* Countdown Overlay (V3.1 Neon) */}
       {countdown !== null && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <span
@@ -73,7 +84,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </div>
       )}
 
-      {/* Kayıt göstergesi */}
+      {/* Recording Indicator (V3.1 Neon) */}
       {isRecording && (
         <div
           className="absolute top-0 left-0 right-0 z-10"
@@ -94,7 +105,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </div>
       )}
 
-      {/* Köşe çerçevesi */}
+      {/* Corner Frame */}
       <div className="absolute inset-0 z-10 pointer-events-none">
         {[
           "top-4 left-4 border-t border-l",
@@ -106,39 +117,58 @@ export default function CameraCapture({ onCaptureComplete }) {
         ))}
       </div>
 
-      {/* Alt çekim butonu */}
+      {/* Camera Flip Button (V3.1 Addition) */}
+      <button
+        onClick={toggleCamera}
+        disabled={isRecording}
+        className="absolute right-8 bottom-32 z-20 p-3 rounded-full border transition-all active:scale-90 disabled:opacity-30"
+        style={{
+          borderColor: "#00fff7",
+          background: "rgba(0,255,247,0.1)",
+          boxShadow: "0 0 15px rgba(0,255,247,0.3)"
+        }}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00fff7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M23 4v6h-6"></path>
+          <path d="M1 20v-6h6"></path>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+
+      {/* Bottom Control Section */}
       <div
         className="absolute bottom-0 left-0 right-0 flex flex-col items-center z-10"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 24px) + 16px)" }}
       >
         {!isRecording && (
-          <p className="mb-5 text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>
-            3 saniyelik gerçekliğini yakala
+          <p className="mb-5 text-xs tracking-widest uppercase font-light" style={{ color: "rgba(0,255,247,0.6)" }}>
+            Capture your 3-second reality
           </p>
         )}
 
         <button
           onClick={startCapture}
           disabled={isRecording}
-          aria-label="Çekim başlat"
-          className="relative flex items-center justify-center rounded-full transition-transform active:scale-90 disabled:opacity-50"
+          aria-label="Start Capture"
+          className="relative flex items-center justify-center rounded-full transition-transform active:scale-95 disabled:opacity-50"
           style={{
-            width: 80,
-            height: 80,
-            background: isRecording ? "rgba(255,0,60,0.2)" : "rgba(0,255,247,0.1)",
+            width: 84,
+            height: 84,
+            background: isRecording ? "rgba(255,0,60,0.1)" : "rgba(0,255,247,0.05)",
             border: isRecording ? "2px solid #ff003c" : "2px solid #00fff7",
             boxShadow: isRecording
-              ? "0 0 24px #ff003c, inset 0 0 16px rgba(255,0,60,0.2)"
-              : "0 0 24px #00fff7, inset 0 0 16px rgba(0,255,247,0.15)",
+              ? "0 0 30px #ff003c, inset 0 0 20px rgba(255,0,60,0.2)"
+              : "0 0 30px #00fff7, inset 0 0 20px rgba(0,255,247,0.1)",
           }}
         >
           <div
-            className="rounded-full"
+            className="rounded-full transition-all duration-300"
             style={{
-              width: 52,
-              height: 52,
+              width: isRecording ? 40 : 56,
+              height: isRecording ? 40 : 56,
               background: isRecording ? "#ff003c" : "#00fff7",
               boxShadow: isRecording ? "0 0 20px #ff003c" : "0 0 20px #00fff7",
+              borderRadius: isRecording ? "8px" : "50%"
             }}
           />
         </button>
