@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 
-export function useMediaRecorder({ onCaptureComplete, onStreamReady }) {
+export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode = "environment" }) {
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState(null);
 
@@ -8,21 +8,7 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady }) {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
-  // Kamera önizlemesini başlat (component mount'ta çağrılır)
-  const startPreview = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: true,
-      });
-      streamRef.current = stream;
-      if (onStreamReady) onStreamReady(stream);
-    } catch (err) {
-      console.error("Kamera erişim hatası:", err);
-    }
-  }, [onStreamReady]);
-
-  // Önizlemeyi durdur (component unmount'ta çağrılır)
+  // Önizlemeyi durdur (Temizlik için her yerde kullanılır)
   const stopPreview = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -30,23 +16,47 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady }) {
     }
   }, []);
 
+  // Kamera önizlemesini başlat (V3.1: facingMode duyarlı)
+  const startPreview = useCallback(async () => {
+    // Yeni bir stream başlatmadan önce eskisini durdur (Kamera geçişi için kritik)
+    stopPreview();
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: true, // V3.1: Ambient Sound (Ortam Sesi)
+      });
+      streamRef.current = stream;
+      if (onStreamReady) onStreamReady(stream);
+    } catch (err) {
+      console.error("Camera access error:", err);
+    }
+  }, [onStreamReady, facingMode, stopPreview]);
+
   const startCapture = useCallback(async () => {
     if (isRecording || !streamRef.current) return;
 
+    // V3.1: Manipüle edilemez zaman (UTC)
     const timestamp = new Date().toUTCString();
     let location = null;
+    
     try {
       location = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve({ lat: pos.coords.latitude, long: pos.coords.longitude }),
           (err) => reject(err),
-          { timeout: 3000 }
+          { timeout: 3000, enableHighAccuracy: true }
         );
       });
     } catch {
       location = null;
     }
 
+    // Video formatı kontrolü
     const mimeType = MediaRecorder.isTypeSupported("video/mp4")
       ? "video/mp4"
       : "video/webm";
@@ -63,12 +73,15 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady }) {
       const blob = new Blob(chunksRef.current, { type: mimeType });
       setIsRecording(false);
       setCountdown(null);
+      // V3.1: Video çekimi bittiğinde onCaptureComplete tetiklenir
       if (onCaptureComplete) onCaptureComplete({ blob, location, timestamp });
     };
 
+    // Kaydı başlat
     recorder.start();
     setIsRecording(true);
 
+    // 3 Saniye Kuralı (Countdown)
     let count = 3;
     setCountdown(count);
     const interval = setInterval(() => {
@@ -78,7 +91,7 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady }) {
       } else {
         clearInterval(interval);
         setCountdown(null);
-        recorder.stop();
+        recorder.stop(); // 3 saniye dolunca otomatik durdur
       }
     }, 1000);
   }, [isRecording, onCaptureComplete]);
