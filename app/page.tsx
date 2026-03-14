@@ -444,10 +444,15 @@ const ONEAppDemo = () => {
                   playsInline
                   controls
                   autoPlay
-                  loop
                   preload="auto"
                   onLoadedData={() => {
                     reviewVideoRef.current?.play().catch(() => {});
+                  }}
+                  onEnded={() => {
+                    if (reviewVideoRef.current) {
+                      reviewVideoRef.current.currentTime = 0;
+                      reviewVideoRef.current.play().catch(() => {});
+                    }
                   }}
                   style={{
                     position: 'absolute',
