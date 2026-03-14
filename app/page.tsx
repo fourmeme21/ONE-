@@ -29,12 +29,15 @@ const ONEAppDemo = () => {
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
+  const [lastCapturedBlob, setLastCapturedBlob] = useState<Blob | null>(null);
   const [lastCapturedVideo, setLastCapturedVideo] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showVideoReview, setShowVideoReview] = useState(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const reviewVideoRef = useRef<HTMLVideoElement>(null);
   const isScrollingRef = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -363,27 +366,34 @@ const ONEAppDemo = () => {
 
             <CameraCapture
               onCaptureComplete={async ({ blob, location, timestamp }) => {
+                // 1. Kamerayı kapat, feed'e dön
+                setCameraOpen(false);
+                setActiveTab('feed');
+
+                // 2. Blob'u sakla, review'i aç
+                setLastCapturedBlob(blob);
+                setLastCapturedVideo(null); // önce temizle
+                setUploadError(null);
+                setUploadSuccess(false);
+                setShowVideoReview(true);
+
+                // 3. Kısa gecikme sonra URL oluştur — kamera stream kapanmasını bekle
+                setTimeout(() => {
+                  const url = URL.createObjectURL(blob);
+                  setLastCapturedVideo(url);
+                }, 300);
+
+                // 4. Supabase upload
                 try {
                   setUploading(true);
-                  setUploadError(null);
-
-                  const videoUrl = URL.createObjectURL(blob);
-                  setCameraOpen(false);
-                  setActiveTab('feed');
-                  setLastCapturedVideo(videoUrl);
-                  setShowVideoReview(true);
-
+                  const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+                  const file = new File([blob], `one_${Date.now()}.${ext}`, { type: blob.type });
                   const secureDate = timestamp instanceof Date ? timestamp : new Date();
-                  const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
                   await uploadMoment(file, location, secureDate.toISOString());
                   setHasCapturedToday(true);
-
-                  // 8 saniye sonra otomatik kapat
-                  setTimeout(() => setShowVideoReview(false), 8000);
+                  setUploadSuccess(true);
                 } catch (err: any) {
-                  setUploadError('Upload failed: ' + (err.message || 'Unknown error'));
-                  setLastCapturedVideo(null);
-                  setShowVideoReview(false);
+                  setUploadError('Upload hatası: ' + (err.message || 'Bilinmeyen hata'));
                 } finally {
                   setUploading(false);
                 }
@@ -395,48 +405,65 @@ const ONEAppDemo = () => {
 
       {/* ─── VİDEO REVIEW — Kayıt sonrası uygulama içi görünüm ─── */}
       <AnimatePresence>
-        {showVideoReview && lastCapturedVideo && (
+        {showVideoReview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center px-6"
-            style={{ background: 'rgba(5,7,15,0.88)', backdropFilter: 'blur(16px)' }}
+            className="fixed inset-0 z-[150] flex flex-col items-center justify-center px-6"
+            style={{ background: 'rgba(5,7,15,0.92)', backdropFilter: 'blur(20px)' }}
           >
             <motion.div
               initial={{ scale: 0.85, y: 40 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.85, y: 40 }}
               transition={{ type: 'spring', damping: 20, stiffness: 260 }}
-              className="relative w-full max-w-sm rounded-3xl overflow-hidden"
+              className="relative w-full max-w-sm rounded-3xl overflow-hidden bg-black"
               style={{
                 border: '1.5px solid rgba(0,217,255,0.35)',
                 boxShadow: '0 0 60px rgba(0,217,255,0.15), 0 24px 48px rgba(0,0,0,0.6)',
-                height: '70vh',
+                height: '65vh',
               }}
             >
-              {/* Video */}
-              <video
-                key={lastCapturedVideo}
-                src={lastCapturedVideo}
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              {/* Video — src hazır değilse spinner göster */}
+              {lastCapturedVideo ? (
+                <video
+                  ref={reviewVideoRef}
+                  key={lastCapturedVideo}
+                  src={lastCapturedVideo}
+                  playsInline
+                  controls
+                  autoPlay
+                  loop
+                  preload="auto"
+                  onLoadedData={() => {
+                    reviewVideoRef.current?.play().catch(() => {});
+                  }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 1,
+                  }}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs text-cyan-400 font-jetbrains tracking-widest uppercase">Hazırlanıyor...</p>
+                  </div>
+                </div>
+              )}
 
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70 pointer-events-none" />
-
-              {/* Üst etiket */}
-              <div className="absolute top-4 left-0 right-0 flex justify-center z-10 pointer-events-none">
+              {/* Üst etiket — video üzerinde hafif */}
+              <div className="absolute top-4 left-0 right-0 flex justify-center z-20 pointer-events-none">
                 <span
                   className="text-[10px] tracking-[0.3em] uppercase font-light px-3 py-1 rounded-full"
                   style={{
                     color: '#00D9FF',
-                    background: 'rgba(0,0,0,0.5)',
+                    background: 'rgba(0,0,0,0.6)',
                     textShadow: '0 0 10px #00D9FF',
                     border: '1px solid rgba(0,217,255,0.3)',
                   }}
@@ -445,37 +472,69 @@ const ONEAppDemo = () => {
                 </span>
               </div>
 
-              {/* Alt badge */}
-              <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col items-center gap-2 z-10 pointer-events-none">
-                <div
-                  className="px-5 py-2 rounded-full font-bold uppercase tracking-widest text-sm"
-                  style={{
-                    background: '#00D9FF',
-                    color: '#05070F',
-                    boxShadow: '0 0 20px rgba(0,217,255,0.6)',
-                  }}
-                >
-                  ✓ REALITY CAPTURED
-                </div>
-                {uploading ? (
-                  <p className="text-[10px] text-cyan-400 font-jetbrains animate-pulse uppercase tracking-widest">
-                    Yükleniyor...
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-white/50 font-jetbrains uppercase tracking-widest">
-                    Bugünkü anın kaydedildi
-                  </p>
-                )}
-              </div>
-
               {/* Kapat */}
               <button
-                onClick={() => setShowVideoReview(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm z-10"
-                style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+                onClick={() => {
+                  setShowVideoReview(false);
+                  if (lastCapturedVideo) URL.revokeObjectURL(lastCapturedVideo);
+                }}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm z-20"
+                style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}
               >
                 ✕
               </button>
+            </motion.div>
+
+            {/* Upload durum kartı — video kartının altında */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-4 w-full max-w-sm px-4 py-3 rounded-2xl flex items-center gap-3"
+              style={{
+                background: uploading
+                  ? 'rgba(0,217,255,0.08)'
+                  : uploadSuccess
+                  ? 'rgba(34,197,94,0.12)'
+                  : uploadError
+                  ? 'rgba(239,68,68,0.12)'
+                  : 'rgba(0,217,255,0.08)',
+                border: uploading
+                  ? '1px solid rgba(0,217,255,0.25)'
+                  : uploadSuccess
+                  ? '1px solid rgba(34,197,94,0.35)'
+                  : uploadError
+                  ? '1px solid rgba(239,68,68,0.35)'
+                  : '1px solid rgba(0,217,255,0.25)',
+              }}
+            >
+              {uploading && (
+                <>
+                  <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <p className="text-xs text-cyan-400 font-jetbrains tracking-widest uppercase">Supabase'e yükleniyor...</p>
+                </>
+              )}
+              {!uploading && uploadSuccess && (
+                <>
+                  <span className="text-green-400 text-lg shrink-0">✓</span>
+                  <div>
+                    <p className="text-xs text-green-400 font-jetbrains tracking-widest uppercase font-bold">Kaydedildi</p>
+                    <p className="text-[10px] text-white/40 font-jetbrains mt-0.5">Supabase Storage & DB'ye yüklendi</p>
+                  </div>
+                </>
+              )}
+              {!uploading && uploadError && (
+                <>
+                  <span className="text-red-400 text-lg shrink-0">✗</span>
+                  <div>
+                    <p className="text-xs text-red-400 font-jetbrains tracking-widest uppercase font-bold">Hata</p>
+                    <p className="text-[10px] text-white/40 font-jetbrains mt-0.5">{uploadError}</p>
+                  </div>
+                </>
+              )}
+              {!uploading && !uploadSuccess && !uploadError && (
+                <p className="text-xs text-white/40 font-jetbrains tracking-widest uppercase">Bekliyor...</p>
+              )}
             </motion.div>
           </motion.div>
         )}
