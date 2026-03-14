@@ -111,11 +111,6 @@ const ONEAppDemo = () => {
 
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
-      if (isScrollingRef.current) return;
-      const now = Date.now();
-      if (now - lastTapTimeRef.current < 300) return;
-      lastTapTimeRef.current = now;
-
       if (!user) {
         setUploadError("Giriş yapmadan gerçekliği yakalayamazsınız.");
         return;
@@ -124,6 +119,7 @@ const ONEAppDemo = () => {
       setCameraOpen(true);
       return;
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveTab(tab);
   };
 
