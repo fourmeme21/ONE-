@@ -5,8 +5,8 @@ import { useMediaRecorder } from "@/hooks/useMediaRecorder";
 
 export default function CameraCapture({ onCaptureComplete }) {
   const videoRef = useRef(null);
-  // V3.1: Kullanıcı denetimli kamera yönü (varsayılan 'user' yani ön kamera)
-  const [facingMode, setFacingMode] = useState("user");
+  // Varsayılan 'environment' yani arka kamera
+  const [facingMode, setFacingMode] = useState("environment");
 
   const handleStreamReady = useCallback((stream) => {
     if (videoRef.current) {
