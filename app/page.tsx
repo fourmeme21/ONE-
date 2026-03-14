@@ -34,6 +34,9 @@ const ONEAppDemo = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
 
+  // Review Mode State
+  const [isReviewing, setIsReviewing] = useState(false);
+
   // Auth Session Management
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -279,40 +282,53 @@ const ONEAppDemo = () => {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-[100] bg-black"
           >
-            <button
-              onClick={() => { setCameraOpen(false); setActiveTab('feed'); }}
-              className="absolute top-12 left-6 z-[110] w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white"
-            >✕</button>
+            {!isReviewing ? (
+              <>
+                <button
+                  onClick={() => { setCameraOpen(false); setActiveTab('feed'); }}
+                  className="absolute top-12 left-6 z-[110] w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white"
+                >✕</button>
 
-            <CameraCapture
-              onCaptureComplete={async ({ blob, location, timestamp }) => {
-                try {
-                  setUploading(true);
-                  setUploadError(null);
-                  const videoUrl = URL.createObjectURL(blob);
-                  setLastCapturedVideo(videoUrl);
-                  
-                  const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
-                  await uploadMoment(file, location, timestamp);
-                  setHasCapturedToday(true);
-                } catch (err: any) {
-                  setUploadError("Upload failed: " + (err.message || "Unknown error"));
-                  setLastCapturedVideo(null);
-                } finally {
-                  setUploading(false);
-                  setCameraOpen(false);
-                  setActiveTab('feed');
-                }
-              }}
-            />
-
-            {uploading && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-[120]">
-                <div className="w-12 h-12 border-2 border-[var(--accent-electric)] border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="font-jetbrains text-xs tracking-widest text-[var(--accent-electric)] uppercase animate-pulse">
-                  Uploading Reality...
-                </p>
-              </div>
+                <CameraCapture
+                  onCaptureComplete={async ({ blob, location, timestamp }) => {
+                    try {
+                      setUploading(true);
+                      setUploadError(null);
+                      const videoUrl = URL.createObjectURL(blob);
+                      setLastCapturedVideo(videoUrl);
+                      setIsReviewing(true);
+                      
+                      const secureDate = timestamp instanceof Date ? timestamp : new Date();
+                      const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
+                      
+                      await uploadMoment(file, location, secureDate.toISOString());
+                      setHasCapturedToday(true);
+                      
+                      setTimeout(() => {
+                        setIsReviewing(false);
+                        setCameraOpen(false);
+                        setActiveTab('feed');
+                      }, 3000);
+                    } catch (err: any) {
+                      setUploadError("Upload failed: " + (err.message || "Unknown error"));
+                      setLastCapturedVideo(null);
+                      setIsReviewing(false);
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                />
+              </>
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[120] bg-black flex flex-col items-center justify-center">
+                <video src={lastCapturedVideo!} autoPlay loop className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-end pb-24">
+                  <div className="bg-[var(--accent-electric)] text-black px-6 py-2 rounded-full font-bold uppercase tracking-widest text-sm shadow-[0_0_20px_rgba(0,217,255,0.5)]">
+                    REALITY CAPTURED
+                  </div>
+                  {uploading && <p className="mt-4 text-[10px] text-cyan-400 font-jetbrains animate-pulse uppercase tracking-widest">Uploading...</p>}
+                </div>
+              </motion.div>
             )}
           </motion.div>
         )}
