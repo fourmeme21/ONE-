@@ -62,7 +62,10 @@ const ONEAppDemo = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const [sleepConfig, setSleepConfig] = useState(() => {
+  // Kullanıcı değişince hasCapturedToday sıfırla
+  useEffect(() => {
+    setHasCapturedToday(false);
+  }, [user]);
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('one_sleep_settings');
       return saved ? JSON.parse(saved) : { start: "23:00", end: "08:00" };
@@ -307,13 +310,10 @@ const ONEAppDemo = () => {
                   setUploadError(null);
 
                   const videoUrl = URL.createObjectURL(blob);
-                  setLastCapturedVideo(videoUrl);
-
                   setCameraOpen(false);
                   setActiveTab('feed');
-
-                  // Kısa gecikme: state settle olduktan sonra review aç
-                  setTimeout(() => setShowVideoReview(true), 100);
+                  setLastCapturedVideo(videoUrl);
+                  setShowVideoReview(true);
 
                   const secureDate = timestamp instanceof Date ? timestamp : new Date();
                   const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
