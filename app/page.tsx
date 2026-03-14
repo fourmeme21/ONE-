@@ -34,13 +34,10 @@ const ONEAppDemo = () => {
   const [user, setUser] = useState<any>(null);
   const [showVideoReview, setShowVideoReview] = useState(false);
 
-  // SORUN 1 DÜZELTMESİ: Scroll sırasında yanlışlıkla kamera açılmasını engellemek için
-  // Son dokunma zamanını takip ediyoruz
   const lastTapTimeRef = useRef<number>(0);
   const isScrollingRef = useRef<boolean>(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Scroll başladığında flag'i set et
   useEffect(() => {
     const handleScroll = () => {
       isScrollingRef.current = true;
@@ -53,7 +50,6 @@ const ONEAppDemo = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Auth Session Management
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -113,12 +109,9 @@ const ONEAppDemo = () => {
     initDailyLogic();
   }, [sleepConfig, user]);
 
-  // SORUN 1 DÜZELTMESİ: Scroll sırasında kamera açılmasını engelle
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
-      // Scroll sırasında veya son 300ms içinde tetiklendiyse iptal et
       if (isScrollingRef.current) return;
-      
       const now = Date.now();
       if (now - lastTapTimeRef.current < 300) return;
       lastTapTimeRef.current = now;
@@ -264,12 +257,10 @@ const ONEAppDemo = () => {
         </div>
       </div>
 
-      {/* Splash Screen */}
       <AnimatePresence>
         {showSplash && <SplashScreen duration={2000} onComplete={() => setShowSplash(false)} />}
       </AnimatePresence>
 
-      {/* Bildirim */}
       <AnimatePresence>
         {showNotification && user && (
           <NotificationMoment 
@@ -282,7 +273,6 @@ const ONEAppDemo = () => {
         )}
       </AnimatePresence>
 
-      {/* Upload Hatası */}
       <AnimatePresence>
         {uploadError && (
           <motion.div 
@@ -299,7 +289,6 @@ const ONEAppDemo = () => {
         )}
       </AnimatePresence>
 
-      {/* Onboarding */}
       {showOnboarding && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
 
       {/* ─── KAMERA (Tam Ekran) ─────────────────────────────── */}
@@ -328,14 +317,15 @@ const ONEAppDemo = () => {
 
                   setCameraOpen(false);
                   setActiveTab('feed');
-                  setShowVideoReview(true);
+
+                  // Kısa gecikme: state settle olduktan sonra review aç
+                  setTimeout(() => setShowVideoReview(true), 100);
 
                   const secureDate = timestamp instanceof Date ? timestamp : new Date();
                   const file = new File([blob], `one_${Date.now()}.mp4`, { type: blob.type });
                   await uploadMoment(file, location, secureDate.toISOString());
                   setHasCapturedToday(true);
 
-                  // 8 saniye sonra video review'i kapat
                   setTimeout(() => setShowVideoReview(false), 8000);
 
                 } catch (err: any) {
@@ -359,7 +349,7 @@ const ONEAppDemo = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[150] flex items-center justify-center px-6"
-            style={{ background: 'rgba(5,7,15,0.85)', backdropFilter: 'blur(12px)' }}
+            style={{ background: 'rgba(5,7,15,0.88)', backdropFilter: 'blur(16px)' }}
           >
             <motion.div
               initial={{ scale: 0.85, y: 40 }}
@@ -370,62 +360,66 @@ const ONEAppDemo = () => {
               style={{
                 border: '1.5px solid rgba(0,217,255,0.35)',
                 boxShadow: '0 0 60px rgba(0,217,255,0.15), 0 24px 48px rgba(0,0,0,0.6)',
+                height: '70vh',
               }}
             >
-              <div className="relative aspect-[9/16] bg-black max-h-[65vh]">
-                {/* SORUN 3 DÜZELTMESİ: muted={true} — mobilde autoplay için zorunlu */}
-                <video
-                  src={lastCapturedVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
+              {/* Video — fixed height, object-cover */}
+              <video
+                key={lastCapturedVideo}
+                src={lastCapturedVideo}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
 
-                <div className="absolute top-4 left-0 right-0 flex justify-center">
-                  <span
-                    className="text-[10px] tracking-[0.3em] uppercase font-light px-3 py-1 rounded-full"
-                    style={{
-                      color: '#00D9FF',
-                      background: 'rgba(0,0,0,0.5)',
-                      textShadow: '0 0 10px #00D9FF',
-                      border: '1px solid rgba(0,217,255,0.3)',
-                    }}
-                  >
-                    ONE · RAW REALITY
-                  </span>
-                </div>
+              {/* Overlay gradient */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70 pointer-events-none" />
 
-                <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col items-center gap-2"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }}
+              {/* Üst etiket */}
+              <div className="absolute top-4 left-0 right-0 flex justify-center z-10">
+                <span
+                  className="text-[10px] tracking-[0.3em] uppercase font-light px-3 py-1 rounded-full"
+                  style={{
+                    color: '#00D9FF',
+                    background: 'rgba(0,0,0,0.5)',
+                    textShadow: '0 0 10px #00D9FF',
+                    border: '1px solid rgba(0,217,255,0.3)',
+                  }}
                 >
-                  <div
-                    className="px-5 py-2 rounded-full font-bold uppercase tracking-widest text-sm"
-                    style={{
-                      background: '#00D9FF',
-                      color: '#05070F',
-                      boxShadow: '0 0 20px rgba(0,217,255,0.6)',
-                    }}
-                  >
-                    ✓ REALITY CAPTURED
-                  </div>
-                  {uploading && (
-                    <p className="text-[10px] text-cyan-400 font-jetbrains animate-pulse uppercase tracking-widest">
-                      Yükleniyor...
-                    </p>
-                  )}
-                  {!uploading && (
-                    <p className="text-[10px] text-white/50 font-jetbrains uppercase tracking-widest">
-                      Bugünkü anın kaydedildi
-                    </p>
-                  )}
-                </div>
+                  ONE · RAW REALITY
+                </span>
               </div>
 
+              {/* Alt badge */}
+              <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col items-center gap-2 z-10">
+                <div
+                  className="px-5 py-2 rounded-full font-bold uppercase tracking-widest text-sm"
+                  style={{
+                    background: '#00D9FF',
+                    color: '#05070F',
+                    boxShadow: '0 0 20px rgba(0,217,255,0.6)',
+                  }}
+                >
+                  ✓ REALITY CAPTURED
+                </div>
+                {uploading && (
+                  <p className="text-[10px] text-cyan-400 font-jetbrains animate-pulse uppercase tracking-widest">
+                    Yükleniyor...
+                  </p>
+                )}
+                {!uploading && (
+                  <p className="text-[10px] text-white/50 font-jetbrains uppercase tracking-widest">
+                    Bugünkü anın kaydedildi
+                  </p>
+                )}
+              </div>
+
+              {/* Kapat */}
               <button
                 onClick={() => setShowVideoReview(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm z-10"
                 style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
               >
                 ✕
