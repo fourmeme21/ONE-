@@ -6,49 +6,55 @@ const supabaseAnonKey = 'sb_publishable_1JoS_on8letn0YwSIhZMKA_l1F_f-b2'
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 /**
- * Bugün çekim yapılıp yapılmadığını kontrol eder.
- * Build hatasını çözmek için eklendi.
+ * Checks if the user has already captured their moment for today.
+ * Essential for enforcing the "One Moment Per Day" rule.
  */
 export const checkTodayCapture = async (): Promise<boolean> => {
   try {
-    const today = new Date().toISOString().split('t')[0]; // YYYY-MM-DD
+    // Standard ISO format is YYYY-MM-DDTHH:mm:ss.sssZ. We split at 'T' for the date.
+    const today = new Date().toISOString().split('T')[0]; 
     
-    // Not: Gerçek veritabanı tablon henüz hazır değilse 
-    // şimdilik her zaman false dönebiliriz:
-    // return false;
-
     const { data, error } = await supabase
       .from('moments')
       .select('id')
       .gte('created_at', today)
       .limit(1);
 
-    if (error) return false;
+    if (error) {
+      console.error("Fetch Error:", error.message);
+      return false;
+    }
+    
     return data && data.length > 0;
   } catch (err) {
+    console.error("System Check Error:", err);
     return false;
   }
 }
 
 /**
- * Moment yükleme fonksiyonu (page.tsx'teki argümanlarla uyumlu hale getirildi)
+ * Uploads the captured reality (file) to Storage and saves metadata to the Database.
+ * Consistent with arguments used in app/page.tsx
  */
 export const uploadMoment = async (file: File, location?: any, timestamp?: string) => {
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `one_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     
-    // 1. Storage'a dosyayı yükle
+    // 1. Upload the file to Supabase Storage 'moments' bucket
     const { data: storageData, error: storageError } = await supabase.storage
       .from('moments')
-      .upload(fileName, file, { upsert: true });
+      .upload(fileName, file, { 
+        upsert: true,
+        cacheControl: '3600'
+      });
 
     if (storageError) {
-      alert("Yükleme Başarısız: " + storageError.message);
+      alert("Upload Failed: " + storageError.message);
       return null;
     }
 
-    // 2. Veritabanına meta verileri kaydet (location ve timestamp dahil)
+    // 2. Save metadata (path, location, timestamp) to the 'moments' table
     const { error: dbError } = await supabase
       .from('moments')
       .insert([
@@ -60,13 +66,14 @@ export const uploadMoment = async (file: File, location?: any, timestamp?: strin
       ]);
 
     if (dbError) {
-       console.warn("Meta data kaydedilemedi:", dbError.message);
+       console.warn("Metadata sync failed:", dbError.message);
+       // We don't block the user if only DB metadata fails, but it's logged for maintenance
     }
 
-    alert("TEBRİKLER: Gerçeklik başarıyla kaydedildi!");
+    alert("CONGRATS: Your reality has been captured successfully!");
     return storageData.path;
   } catch (err: any) {
-    alert("Sistem Hatası: " + err.message);
+    alert("System Error: " + err.message);
     return null;
   }
 }
