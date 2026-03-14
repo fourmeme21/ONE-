@@ -119,7 +119,6 @@ const ONEAppDemo = () => {
       case 'profile':
         return (
           <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-4">
-            <LoginButton />
             <ProfileScreen 
               userProfile={mockUserProfile} 
               isPremium={isPremium} 
@@ -145,7 +144,13 @@ const ONEAppDemo = () => {
   return (
     <div className="min-h-screen bg-[var(--bg-void)] overflow-x-hidden text-white">
       <div className="pb-28">
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10 pb-2">
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="px-5 pt-10 pb-2 relative">
+          
+          {/* LOGIN BUTTON: POSITIONAL UPDATE TO TOP RIGHT */}
+          <div className="absolute top-10 right-5 z-10 scale-90 origin-right">
+            <LoginButton />
+          </div>
+
           <h1 className="font-bebas leading-none" style={{ fontSize: 'clamp(72px, 20vw, 120px)', background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             ONE
           </h1>
