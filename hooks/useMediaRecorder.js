@@ -47,7 +47,7 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
     try {
       location = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
           (err) => reject(err),
           { timeout: 3000, enableHighAccuracy: true }
         );
