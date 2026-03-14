@@ -18,13 +18,14 @@ const tabs = [
 ];
 
 const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTabChange, hasNewMoments = true }) => {
-  // Dokunma başlangıç pozisyonunu kaydet
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
+  const touchStartTime = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
+    touchStartTime.current = Date.now();
   };
 
   const handleTouchEnd = (
@@ -33,11 +34,11 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
   ) => {
     const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
+    const elapsed = Date.now() - touchStartTime.current;
 
-    // 10px'den fazla hareket varsa scroll sayılır, tıklama tetiklenmez
-    if (deltaY > 10 || deltaX > 10) return;
+    // 8px'den fazla hareket veya 400ms'den uzun basış → scroll/long press, iptal et
+    if (deltaY > 8 || deltaX > 8 || elapsed > 400) return;
 
-    e.preventDefault();
     e.stopPropagation();
     onTabChange?.(tabId);
   };
@@ -54,12 +55,10 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
               onTouchStart={handleTouchStart}
               onTouchEnd={(e) => handleTouchEnd(e, tab.id)}
               onClick={(e) => {
-                // Mouse click (masaüstü) için normal çalışsın
                 e.stopPropagation();
                 onTabChange?.(tab.id);
               }}
               className="relative flex flex-col items-center justify-center gap-1"
-              style={{ touchAction: 'none' }}
               whileTap={{ scale: 0.95 }}
             >
               <div className={`flex items-center justify-center ${isCapture ? 'w-14 h-14 rounded-full border-2 border-[var(--accent-electric)]' : 'w-8 h-8'}`}>
