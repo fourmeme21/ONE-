@@ -437,32 +437,43 @@ const ONEAppDemo = () => {
             >
               {/* Video — src hazır değilse spinner göster */}
               {lastCapturedVideo ? (
-                <video
-                  ref={reviewVideoRef}
-                  key={lastCapturedVideo}
-                  src={lastCapturedVideo}
-                  playsInline
-                  controls
-                  autoPlay
-                  preload="auto"
-                  onLoadedData={() => {
-                    reviewVideoRef.current?.play().catch(() => {});
-                  }}
-                  onEnded={() => {
-                    if (reviewVideoRef.current) {
-                      reviewVideoRef.current.currentTime = 0;
-                      reviewVideoRef.current.play().catch(() => {});
-                    }
-                  }}
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    zIndex: 1,
-                  }}
-                />
+                <div className="absolute inset-0 z-10" onClick={() => {
+                  if (reviewVideoRef.current) {
+                    reviewVideoRef.current.muted = !reviewVideoRef.current.muted;
+                  }
+                }}>
+                  <video
+                    ref={reviewVideoRef}
+                    key={lastCapturedVideo}
+                    src={lastCapturedVideo}
+                    playsInline
+                    autoPlay
+                    muted
+                    preload="auto"
+                    onLoadedData={() => {
+                      reviewVideoRef.current?.play().catch(() => {});
+                    }}
+                    onEnded={() => {
+                      if (reviewVideoRef.current) {
+                        reviewVideoRef.current.currentTime = 0;
+                        reviewVideoRef.current.play().catch(() => {});
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  {/* Tap to unmute hint */}
+                  <div className="absolute bottom-16 left-0 right-0 flex justify-center pointer-events-none">
+                    <span className="text-[10px] text-white/50 font-jetbrains tracking-widest uppercase bg-black/40 px-3 py-1 rounded-full">
+                      🔇 Tap for sound
+                    </span>
+                  </div>
+                </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                   <div className="flex flex-col items-center gap-3">
