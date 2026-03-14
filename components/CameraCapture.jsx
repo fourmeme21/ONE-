@@ -5,10 +5,9 @@ import { useMediaRecorder } from "@/hooks/useMediaRecorder";
 
 export default function CameraCapture({ onCaptureComplete }) {
   const videoRef = useRef(null);
-  // V3.1: Kamera yönü state'i (user = ön, environment = arka)
+  // V3.1: Kullanıcı denetimli kamera yönü (varsayılan 'user' yani ön kamera)
   const [facingMode, setFacingMode] = useState("user");
 
-  // Stream hazır olunca doğrudan video elementine bağla
   const handleStreamReady = useCallback((stream) => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -19,18 +18,16 @@ export default function CameraCapture({ onCaptureComplete }) {
     useMediaRecorder({
       onCaptureComplete,
       onStreamReady: handleStreamReady,
-      facingMode: facingMode, // Hook'a yönü gönderiyoruz
+      facingMode: facingMode,
     });
 
-  // Kamera yönü değişince veya ilk açılışta önizlemeyi başlat
   useEffect(() => {
     startPreview();
     return () => stopPreview();
   }, [facingMode, startPreview, stopPreview]);
 
-  // Kamera değiştirme fonksiyonu
   const toggleCamera = () => {
-    if (isRecording) return; // Kayıt sırasında değişimi engelle
+    if (isRecording) return;
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
@@ -39,7 +36,6 @@ export default function CameraCapture({ onCaptureComplete }) {
       style={{ height: "100dvh" }}
       className="relative w-full overflow-hidden bg-black"
     >
-      {/* Raw Camera Feed */}
       <video
         ref={videoRef}
         autoPlay
@@ -51,10 +47,9 @@ export default function CameraCapture({ onCaptureComplete }) {
         style={{ filter: "none", WebkitFilter: "none" }}
       />
 
-      {/* Ambient Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
-      {/* Header Info */}
+      {/* Header */}
       <div
         className="absolute top-0 left-0 right-0 flex items-center justify-center z-10"
         style={{ paddingTop: "env(safe-area-inset-top, 16px)", paddingBottom: "12px" }}
@@ -67,7 +62,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </span>
       </div>
 
-      {/* Countdown Overlay (V3.1 Neon) */}
+      {/* Countdown (V3.1 Neon) */}
       {countdown !== null && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <span
@@ -84,7 +79,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </div>
       )}
 
-      {/* Recording Indicator (V3.1 Neon) */}
+      {/* REC Indicator */}
       {isRecording && (
         <div
           className="absolute top-0 left-0 right-0 z-10"
@@ -105,7 +100,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </div>
       )}
 
-      {/* Corner Frame */}
+      {/* Corner Frame Visuals */}
       <div className="absolute inset-0 z-10 pointer-events-none">
         {[
           "top-4 left-4 border-t border-l",
@@ -117,7 +112,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         ))}
       </div>
 
-      {/* Camera Flip Button (V3.1 Addition) */}
+      {/* Selfie / Rear Camera Toggle */}
       <button
         onClick={toggleCamera}
         disabled={isRecording}
@@ -135,7 +130,7 @@ export default function CameraCapture({ onCaptureComplete }) {
         </svg>
       </button>
 
-      {/* Bottom Control Section */}
+      {/* Capture Button Section */}
       <div
         className="absolute bottom-0 left-0 right-0 flex flex-col items-center z-10"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 24px) + 16px)" }}
