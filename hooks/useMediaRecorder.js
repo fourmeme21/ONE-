@@ -56,13 +56,20 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
       location = null;
     }
 
-    // Video formatı kontrolü
-    const mimeType = MediaRecorder.isTypeSupported("video/mp4")
-      ? "video/mp4"
-      : "video/webm";
+    // Android Chrome video/mp4 MediaRecorder'ı desteklemez — webm kullan
+    // Öncelik sırası: webm/vp9 → webm/vp8 → webm → mp4
+    const mimeType = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+      "video/mp4",
+    ].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
 
     chunksRef.current = [];
-    const recorder = new MediaRecorder(streamRef.current, { mimeType });
+    const recorder = new MediaRecorder(streamRef.current, {
+      mimeType,
+      videoBitsPerSecond: 2_500_000, // 2.5 Mbps — yeterli kalite
+    });
     mediaRecorderRef.current = recorder;
 
     recorder.ondataavailable = (e) => {
@@ -71,14 +78,14 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
+      console.log(`[ONE] Kayıt tamamlandı — format: ${mimeType}, boyut: ${(blob.size / 1024).toFixed(1)} KB`);
       setIsRecording(false);
       setCountdown(null);
-      // V3.1: Video çekimi bittiğinde onCaptureComplete tetiklenir
       if (onCaptureComplete) onCaptureComplete({ blob, location, timestamp });
     };
 
-    // Kaydı başlat
-    recorder.start();
+    // timeslice=250ms — her 250ms'de ondataavailable tetiklenir, veri kaybolmaz
+    recorder.start(250);
     setIsRecording(true);
 
     // 3 Saniye Kuralı (Countdown)
