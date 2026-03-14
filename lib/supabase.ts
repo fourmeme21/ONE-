@@ -86,7 +86,7 @@ export const uploadMoment = async (
   capturedAt?: string
 ): Promise<string> => {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Kullanıcı oturumu bulunamadı.")
+  if (!user) throw new Error("No active session found.")
 
   const fileExt = file.name.split('.').pop() || 'mp4'
   const fileName = `${user.id}/one_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
