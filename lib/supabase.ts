@@ -88,10 +88,10 @@ export const uploadMoment = async (
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("No active session found.")
 
-  const fileExt = file.name.split('.').pop() || 'mp4'
+  const fileExt = file.name.split('.').pop() || 'webm'
   const fileName = `${user.id}/one_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
-  // 1. Videoyu Storage'a yükle
+  // 1. Storage'a yükle
   const { data: storageData, error: storageError } = await supabase.storage
     .from('posts')
     .upload(fileName, file, {
@@ -101,17 +101,25 @@ export const uploadMoment = async (
 
   if (storageError) throw new Error(storageError.message)
 
-  // 2. Metadata'yı DB'ye kaydet
+  // 2. Public URL al
+  const { data: urlData } = supabase.storage
+    .from('posts')
+    .getPublicUrl(storageData.path)
+
+  const publicUrl = urlData?.publicUrl || null
+
+  // 3. DB'ye kaydet
   const { error: dbError } = await supabase
     .from('posts')
     .insert([{
       user_id: user.id,
       file_path: storageData.path,
+      file_url: publicUrl,
       location_point: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
       captured_at: capturedAt || new Date().toISOString(),
     }])
 
   if (dbError) throw new Error(dbError.message)
 
-  return storageData.path
+  return publicUrl || storageData.path
 }
