@@ -20,13 +20,11 @@ const tabs = [
 const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTabChange, hasNewMoments = true }) => {
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
-  const touchStartTime = useRef<number>(0);
   const didFire = useRef<boolean>(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
-    touchStartTime.current = Date.now();
     didFire.current = false;
   };
 
@@ -36,9 +34,9 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
   ) => {
     const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
-    const elapsed = Date.now() - touchStartTime.current;
 
-    if (deltaY > 10 || deltaX > 10 || elapsed > 500) return;
+    // 15px'den fazla hareket varsa scroll sayılır, tıklama iptal edilir
+    if (deltaY > 15 || deltaX > 15) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -50,7 +48,7 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     e: React.MouseEvent,
     tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile'
   ) => {
-    // Touch zaten tetiklediyse onClick'i yoksay (double-fire önlemi)
+    // Touch zaten tetiklediyse onClick'i yoksay
     if (didFire.current) {
       didFire.current = false;
       return;
