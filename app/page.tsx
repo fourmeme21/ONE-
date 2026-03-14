@@ -247,10 +247,8 @@ const ONEAppDemo = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-        <div className="pointer-events-auto">
-          <AppNavigation activeTab={activeTab} onTabChange={handleTabChange} hasNewMoments={showNotification} />
-        </div>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+        <AppNavigation activeTab={activeTab} onTabChange={handleTabChange} hasNewMoments={showNotification} />
       </div>
 
       <AnimatePresence>
