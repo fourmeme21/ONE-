@@ -334,14 +334,20 @@ const ONEAppDemo = () => {
       <AnimatePresence>
         {uploadError && (
           <motion.div
-            initial={{ opacity: 0, y: 80 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 80 }}
-            className="fixed bottom-28 left-5 right-5 z-[200] p-4 bg-red-500/90 backdrop-blur-md rounded-2xl border border-white/20 text-white font-jetbrains text-xs shadow-2xl"
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-24 left-5 right-5 z-[200] p-4 bg-[#0a0a0a]/95 backdrop-blur-md rounded-2xl border border-red-500/50 text-white font-jetbrains text-xs shadow-2xl"
           >
-            <div className="flex justify-between items-start gap-3">
-              <p>{uploadError}</p>
-              <button onClick={() => setUploadError(null)} className="shrink-0">✕</button>
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-red-400 text-base">⚠</span>
+                <p className="text-red-300">{uploadError}</p>
+              </div>
+              <button
+                onClick={() => setUploadError(null)}
+                className="shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"
+              >✕</button>
             </div>
           </motion.div>
         )}
