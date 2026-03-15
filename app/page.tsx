@@ -228,6 +228,7 @@ const ONEAppDemo = () => {
   };
 
   const isFeedTab = activeTab === 'feed';
+  const isReady = !showSplash && !showIntro;
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -267,7 +268,8 @@ const ONEAppDemo = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg-void)] overflow-x-hidden text-white">
-      <div className="pb-28">
+      {/* İçerik sadece splash ve intro bittikten sonra render edilir */}
+      {isReady && <div className="pb-28">
 
         {/* HERO — Sadece Feed'de */}
         <AnimatePresence>
@@ -380,9 +382,9 @@ const ONEAppDemo = () => {
         <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] px-5 text-center pb-4">
           <p className="font-jetbrains text-xs text-[var(--text-ghost)]">The world. Right now. Unfiltered.</p>
         </div>
-      </div>
+      </div>}
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation — her zaman görünür */}
       <div className="fixed bottom-0 left-0 right-0 z-50">
         <AppNavigation
           activeTab={activeTab}
