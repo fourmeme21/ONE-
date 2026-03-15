@@ -49,7 +49,7 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
           (err) => reject(err),
-          { timeout: 3000, enableHighAccuracy: true }
+          { timeout: 8000, enableHighAccuracy: false, maximumAge: 60000 }
         );
       });
     } catch {
