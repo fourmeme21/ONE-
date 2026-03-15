@@ -375,7 +375,6 @@ const ONEAppDemo = () => {
 
             <CameraCapture
               onCaptureComplete={async ({ blob, location, timestamp }) => {
-                // 1. Kamerayı kapat, feed'e dön
                 // 1. Kamerayı kapat
                 setCameraOpen(false);
                 setActiveTab('feed');
@@ -444,6 +443,7 @@ const ONEAppDemo = () => {
                     playsInline
                     autoPlay
                     muted
+                    controls
                     preload="auto"
                     onLoadedData={() => {
                       reviewVideoRef.current?.play().catch(() => {});
@@ -462,11 +462,6 @@ const ONEAppDemo = () => {
                       objectFit: 'cover',
                     }}
                   />
-                  <div className="absolute bottom-16 left-0 right-0 flex justify-center pointer-events-none">
-                    <span className="text-[10px] text-white/50 font-jetbrains tracking-widest uppercase bg-black/40 px-3 py-1 rounded-full">
-                      🔇 Tap for sound
-                    </span>
-                  </div>
                 </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
