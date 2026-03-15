@@ -211,143 +211,143 @@ const GlobalFeed: React.FC = () => {
   ];
 
   return (
-    <div className="w-full space-y-4">
+    <div
+      className="w-full flex flex-col"
+      style={{ height: '100dvh' }}
+    >
+      {/* ─── STICKY HEADER ─── */}
+      <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
 
-      {/* Başlık */}
-      <div className="space-y-1">
-        <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
-        <div className="flex items-center gap-2">
-          <motion.div
-            className="w-2 h-2 rounded-full bg-green-500"
-            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <span className="font-jetbrains text-xs text-[var(--text-secondary)]">
-            {posts.length} moments loaded
-          </span>
-        </div>
-      </div>
-
-      {/* ─── ŞEHİR BLOKLARI ─── */}
-      {cities.length > 0 && (
-        <div
-          className="flex gap-2 overflow-x-auto pb-1"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {/* All butonu */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedCity(null)}
-            className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
-            style={{
-              background: selectedCity === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-              borderColor: selectedCity === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-              minWidth: '56px',
-            }}
-          >
-            <span className="text-lg">🌍</span>
-            <span
-              className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
-              style={{ color: selectedCity === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
-            >
-              All
+        {/* Başlık */}
+        <div className="space-y-1">
+          <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
+          <div className="flex items-center gap-2">
+            <motion.div
+              className="w-2 h-2 rounded-full bg-green-500"
+              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <span className="font-jetbrains text-xs text-[var(--text-secondary)]">
+              {posts.length} moments loaded
             </span>
-          </motion.button>
+          </div>
+        </div>
 
-          {/* Şehir blokları */}
-          {cities.map((c) => (
+        {/* ─── ŞEHİR BLOKLARI ─── */}
+        {cities.length > 0 && (
+          <div
+            className="flex gap-2 overflow-x-auto pb-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             <motion.button
-              key={c.city}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedCity(selectedCity === c.city ? null : c.city)}
+              onClick={() => setSelectedCity(null)}
               className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
               style={{
-                background: selectedCity === c.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                borderColor: selectedCity === c.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                minWidth: '64px',
+                background: selectedCity === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                borderColor: selectedCity === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                minWidth: '56px',
               }}
             >
-              <span className="text-lg">{getFlag(c.country_code)}</span>
+              <span className="text-lg">🌍</span>
               <span
-                className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
-                style={{ color: selectedCity === c.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+                className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
+                style={{ color: selectedCity === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
               >
-                {c.city.length > 8 ? c.city.slice(0, 7) + '…' : c.city}
-              </span>
-              <span
-                className="font-jetbrains text-[8px] mt-0.5"
-                style={{ color: 'rgba(255,255,255,0.25)' }}
-              >
-                {c.count}
+                All
               </span>
             </motion.button>
+
+            {cities.map((c) => (
+              <motion.button
+                key={c.city}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedCity(selectedCity === c.city ? null : c.city)}
+                className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                style={{
+                  background: selectedCity === c.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                  borderColor: selectedCity === c.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                  minWidth: '64px',
+                }}
+              >
+                <span className="text-lg">{getFlag(c.country_code)}</span>
+                <span
+                  className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
+                  style={{ color: selectedCity === c.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+                >
+                  {c.city.length > 8 ? c.city.slice(0, 7) + '…' : c.city}
+                </span>
+                <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  {c.count}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        )}
+
+        {/* Filtreler */}
+        <div className="flex gap-2">
+          {filters.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-4 py-2 rounded-full font-jetbrains text-xs tracking-wider uppercase transition-all ${
+                filter === f.id
+                  ? 'bg-[var(--accent-electric)] text-[var(--bg-void)] font-bold'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
+              }`}
+            >
+              {f.label}
+            </button>
           ))}
         </div>
-      )}
 
-      {/* Filtreler */}
-      <div className="flex gap-2">
-        {filters.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`px-4 py-2 rounded-full font-jetbrains text-xs tracking-wider uppercase transition-all ${
-              filter === f.id
-                ? 'bg-[var(--accent-electric)] text-[var(--bg-void)] font-bold'
-                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        {/* Seçili şehir etiketi */}
+        <AnimatePresence>
+          {selectedCity && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-center gap-2"
+            >
+              <span className="font-jetbrains text-[10px] text-[var(--accent-electric)] uppercase tracking-widest">
+                Showing: {selectedCity}
+              </span>
+              <button
+                onClick={() => setSelectedCity(null)}
+                className="text-[10px] text-white/30 font-jetbrains"
+              >
+                ✕ clear
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Seçili şehir etiketi */}
-      <AnimatePresence>
-        {selectedCity && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-2"
-          >
-            <span className="font-jetbrains text-[10px] text-[var(--accent-electric)] uppercase tracking-widest">
-              Showing: {selectedCity}
-            </span>
-            <button
-              onClick={() => setSelectedCity(null)}
-              className="text-[10px] text-white/30 hover:text-white/60 font-jetbrains"
-            >
-              ✕ clear
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* İçerik */}
+      {/* ─── VİDEO ALANI ─── */}
       {loading ? (
-        <div className="py-16 flex flex-col items-center gap-3">
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
           <p className="font-jetbrains text-xs text-[var(--text-ghost)] uppercase tracking-widest">Loading moments...</p>
         </div>
       ) : posts.length === 0 ? (
-        <div className="py-16 text-center">
+        <div className="flex-1 flex flex-col items-center justify-center">
           <p className="font-jetbrains text-sm text-[var(--text-secondary)]">
             {selectedCity ? `No moments from ${selectedCity} yet.` : 'No moments yet.'}
           </p>
           <p className="font-jetbrains text-xs text-[var(--text-ghost)] mt-1">Be the first to capture.</p>
         </div>
       ) : (
-        <>
-          <div
-            style={{
-              height: '100dvh',
-              overflowY: 'scroll',
-              scrollSnapType: 'y mandatory',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-            }}
-          >
+        <div
+          className="flex-1 overflow-y-scroll"
+          style={{
+            scrollSnapType: 'y mandatory',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingBottom: '80px', // navigation bar yüksekliği
+          }}
+        >
             {posts.map((post) => (
               <div
                 key={post.id}
@@ -390,7 +390,7 @@ const GlobalFeed: React.FC = () => {
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
