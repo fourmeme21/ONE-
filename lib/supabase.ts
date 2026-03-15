@@ -5,47 +5,45 @@ const supabaseAnonKey = 'sb_publishable_1JoS_on8letn0YwSIhZMKA_l1F_f-b2'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-/*
- * ════════════════════════════════════════════════════════
- *  SUPABASE KURULUM — Aşağıdaki SQL'i bir kez çalıştır:
- *  Supabase Dashboard → SQL Editor → New Query → Çalıştır
- * ════════════════════════════════════════════════════════
- *
- * -- PostGIS extension (konum için gerekli)
- * CREATE EXTENSION IF NOT EXISTS postgis;
- *
- * -- posts tablosunu oluştur
- * CREATE TABLE IF NOT EXISTS public.posts (
- *   id             uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
- *   user_id        uuid        REFERENCES auth.users(id) ON DELETE CASCADE,
- *   file_path      text        NOT NULL,
- *   location_name  text,
- *   location_point geography(POINT, 4326),
- *   captured_at    timestamptz DEFAULT now(),
- *   created_at     timestamptz DEFAULT now()
- * );
- *
- * -- Row Level Security aç
- * ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
- *
- * -- Kullanıcı sadece kendi postunu ekleyebilir
- * CREATE POLICY "Users can insert own posts"
- *   ON public.posts FOR INSERT
- *   WITH CHECK (auth.uid() = user_id);
- *
- * -- Herkes okuyabilir (Global Feed)
- * CREATE POLICY "Anyone can read posts"
- *   ON public.posts FOR SELECT
- *   USING (true);
- *
- * -- Storage: Dashboard → Storage → New Bucket
- * -- Bucket adı: "posts" → Public: true
- * ════════════════════════════════════════════════════════
+/**
+ * Koordinattan şehir + ülke bilgisi al.
+ * OpenStreetMap Nominatim — ücretsiz, API key gerektirmez.
  */
+export const reverseGeocode = async (
+  lat: number,
+  lng: number
+): Promise<{ city: string; country: string; country_code: string } | null> => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      {
+        headers: {
+          'Accept-Language': 'en',
+          'User-Agent': 'ONE-App/1.0',
+        },
+      }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+
+    const city =
+      data.address?.city ||
+      data.address?.town ||
+      data.address?.village ||
+      data.address?.county ||
+      'Unknown'
+
+    const country = data.address?.country || 'Unknown'
+    const country_code = (data.address?.country_code || 'xx').toUpperCase()
+
+    return { city, country, country_code }
+  } catch {
+    return null
+  }
+}
 
 /**
  * Bugün bu kullanıcı zaten çekim yaptı mı kontrol et.
- * user_id filtresi eklendi — başkasının postu sayılmıyordu.
  */
 export const checkTodayCapture = async (): Promise<boolean> => {
   try {
@@ -55,8 +53,6 @@ export const checkTodayCapture = async (): Promise<boolean> => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // RLS'den bağımsız — kendi postunu her durumda görmesi için
-    // moderation_status veya is_visible filtresi YOK
     const { data, error } = await supabase
       .from('posts')
       .select('id')
@@ -77,8 +73,7 @@ export const checkTodayCapture = async (): Promise<boolean> => {
 }
 
 /**
- * Videoyu Storage'a yükle, metadata'yı DB'ye kaydet.
- * user_id artık insert'e dahil — RLS politikası için zorunlu.
+ * Videoyu Storage'a yükle, metadata + konum bilgisini DB'ye kaydet.
  */
 export const uploadMoment = async (
   file: File,
@@ -108,14 +103,25 @@ export const uploadMoment = async (
 
   const publicUrl = urlData?.publicUrl || null
 
-  // 3. DB'ye kaydet
+  // 3. Reverse geocode — koordinattan şehir/ülke al
+  let geoData: { city: string; country: string; country_code: string } | null = null
+  if (coords) {
+    geoData = await reverseGeocode(coords.lat, coords.lng)
+  }
+
+  // 4. DB'ye kaydet
   const { error: dbError } = await supabase
     .from('posts')
     .insert([{
       user_id: user.id,
       file_path: storageData.path,
       file_url: publicUrl,
+      latitude: coords?.lat || null,
+      longitude: coords?.lng || null,
       location_point: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
+      city: geoData?.city || null,
+      country: geoData?.country || null,
+      country_code: geoData?.country_code || null,
       captured_at: capturedAt || new Date().toISOString(),
     }])
 
