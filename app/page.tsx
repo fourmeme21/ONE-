@@ -7,7 +7,6 @@ import { uploadMoment, checkTodayCapture, supabase } from '@/lib/supabase';
 import SplashScreen from '@/components/ONE/SplashScreen';
 import NotificationMoment from '@/components/ONE/NotificationMoment';
 import CameraCapture from '@/components/CameraCapture';
-import EmojiReactionSystem from '@/components/ONE/EmojiReactionSystem';
 import GlobalFeed from '@/components/ONE/GlobalFeed';
 import WorldHeatmap from '@/components/ONE/WorldHeatmap';
 import TimeArchive from '@/components/ONE/TimeArchive';
@@ -284,19 +283,6 @@ const ONEAppDemo = () => {
             {renderTabContent()}
           </AnimatePresence>
         </div>
-
-        {/* ─── Emoji Showcase — Sadece Feed'de ─── */}
-        {isFeedTab && (
-          <div className="mt-10 pt-8 border-t border-[var(--border-subtle)] px-5 space-y-4">
-            <h3 className="font-bebas text-lg text-[var(--accent-electric)]">Emoji Reactions</h3>
-            <div className="p-5 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-subtle)]">
-              <EmojiReactionSystem
-                reactionCounts={{ '❤️': 342, '😮': 89, '😂': 156, '🌍': 234, '🙏': 67 }}
-                interactive={true}
-              />
-            </div>
-          </div>
-        )}
 
         <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] px-5 text-center pb-4">
           <p className="font-jetbrains text-xs text-[var(--text-ghost)]">ONE — 3 seconds. No filter. Real.</p>
