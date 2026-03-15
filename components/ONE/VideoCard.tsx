@@ -73,8 +73,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   return (
     <motion.div
-      className="relative w-full rounded-2xl overflow-hidden bg-black"
-      style={{ aspectRatio: '9/16', maxWidth: '100%' }}
+      className="relative w-full rounded-none overflow-hidden bg-black"
+      style={{ height: '100dvh', width: '100%' }}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
@@ -107,15 +107,19 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Play butonu — sadece duraklatılmışsa */}
       {!isPlaying && (
         <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          className="absolute inset-0 flex items-center justify-center"
           onClick={handleTap}
           style={{ cursor: 'pointer', pointerEvents: 'auto' }}
         >
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,217,255,0.2)', border: '1.5px solid rgba(0,217,255,0.6)' }}
+            className="w-20 h-20 rounded-full flex items-center justify-center"
+            style={{
+              background: 'rgba(0,217,255,0.15)',
+              border: '2.5px solid #00D9FF',
+              boxShadow: '0 0 30px rgba(0,217,255,0.5), 0 0 60px rgba(0,217,255,0.2)',
+            }}
           >
-            <span className="text-white text-sm ml-0.5">▶</span>
+            <span className="text-3xl ml-1" style={{ color: '#00D9FF', textShadow: '0 0 15px #00D9FF' }}>▶</span>
           </div>
         </div>
       )}
@@ -137,11 +141,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
       </div>
 
       {/* Alt — zaman + reaksiyonlar */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-2 space-y-1">
-        <p className="font-jetbrains text-[8px] text-white/50 uppercase tracking-widest">{timeAgo}</p>
-
-        {/* Emoji bar — tek satır, büyük */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="absolute bottom-24 left-4 right-4 z-10 space-y-3">
+        <p className="font-jetbrains text-[10px] text-white/60 uppercase tracking-widest">{timeAgo}</p>
+        <div className="flex gap-2 flex-wrap">
           {EMOJIS.map(({ emoji }) => {
             const count = counts[emoji];
             const isSelected = userReaction === emoji;
@@ -149,15 +151,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
               <button
                 key={emoji}
                 onClick={(e) => { e.stopPropagation(); onReact?.(id, emoji); }}
-                className="flex items-center gap-1 px-2 py-1 rounded-full shrink-0"
+                className="flex items-center gap-1 px-3 py-2 rounded-full"
                 style={{
                   background: isSelected ? 'rgba(0,217,255,0.3)' : 'rgba(0,0,0,0.6)',
-                  border: isSelected ? '1px solid rgba(0,217,255,0.6)' : '1px solid rgba(255,255,255,0.15)',
+                  border: isSelected ? '1.5px solid rgba(0,217,255,0.8)' : '1px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(8px)',
                 }}
               >
-                <span className="text-base">{emoji}</span>
+                <span className="text-xl">{emoji}</span>
                 {count > 0 && (
-                  <span className="font-jetbrains text-[10px] text-white/80">{count}</span>
+                  <span className="font-jetbrains text-xs text-white/80 font-bold">{count}</span>
                 )}
               </button>
             );
