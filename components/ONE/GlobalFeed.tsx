@@ -23,7 +23,21 @@ interface Post {
   userReaction?: EmojiType | null;
 }
 
+interface CityBlock {
+  city: string;
+  country_code: string | null;
+  count: number;
+}
+
 const PAGE_SIZE = 10;
+
+// Ülke kodu → bayrak emoji
+const getFlag = (code: string | null) => {
+  if (!code) return '🌍';
+  return [...code.trim().toUpperCase()]
+    .map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)))
+    .join('');
+};
 
 const GlobalFeed: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -36,12 +50,15 @@ const GlobalFeed: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, EmojiType>>({});
 
+  // Şehir blokları
+  const [cities, setCities] = useState<CityBlock[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+
   // Kullanıcı bilgisi
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUserId(user?.id || null);
     });
-    // IP'den konum al
     fetch('https://ipapi.co/json/')
       .then(r => r.json())
       .then(d => {
@@ -50,6 +67,37 @@ const GlobalFeed: React.FC = () => {
         }
       })
       .catch(() => {});
+  }, []);
+
+  // Aktif şehirleri çek
+  useEffect(() => {
+    const fetchCities = async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('city, country_code')
+        .not('city', 'is', null)
+        .order('captured_at', { ascending: false })
+        .limit(200);
+
+      if (error || !data) return;
+
+      // Şehir bazında say
+      const map: Record<string, { country_code: string | null; count: number }> = {};
+      data.forEach((p: any) => {
+        if (!p.city) return;
+        if (!map[p.city]) map[p.city] = { country_code: p.country_code, count: 0 };
+        map[p.city].count++;
+      });
+
+      const sorted = Object.entries(map)
+        .map(([city, val]) => ({ city, ...val }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15);
+
+      setCities(sorted);
+    };
+
+    fetchCities();
   }, []);
 
   // Kullanıcının reaksiyonlarını çek
@@ -79,11 +127,14 @@ const GlobalFeed: React.FC = () => {
         .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
         .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
+      // Şehir filtresi
+      if (selectedCity) {
+        query = query.eq('city', selectedCity);
+      }
+
       if (filter === 'top') {
-        // Top: toplam reaksiyon sayısına göre sırala
         query = query.order('reaction_heart', { ascending: false });
       } else if (filter === 'nearby' && userCoords) {
-        // Nearby: PostGIS ile 50km radius
         const { data: nearbyData } = await supabase.rpc('posts_nearby', {
           user_lat: userCoords.lat,
           user_lng: userCoords.lng,
@@ -117,26 +168,22 @@ const GlobalFeed: React.FC = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filter, page, userCoords, fetchUserReactions]);
+  }, [filter, page, userCoords, fetchUserReactions, selectedCity]);
 
-  // Filtre değişince yeniden çek
+  // Filtre veya şehir değişince yeniden çek
   useEffect(() => {
     fetchPosts(true);
-  }, [filter]);
+  }, [filter, selectedCity]);
 
   // Reaksiyon ekle/kaldır
   const handleReact = async (postId: string, emoji: EmojiType) => {
     if (!currentUserId) return;
-
     const existing = userReactions[postId];
-
     if (existing === emoji) {
-      // Aynı emojiye basıldı — kaldır
       await supabase.from('reactions').delete()
         .eq('post_id', postId).eq('user_id', currentUserId);
       setUserReactions(prev => { const n = { ...prev }; delete n[postId]; return n; });
     } else {
-      // Yeni reaksiyon — önce eskiyi sil, sonra ekle
       if (existing) {
         await supabase.from('reactions').delete()
           .eq('post_id', postId).eq('user_id', currentUserId);
@@ -144,8 +191,6 @@ const GlobalFeed: React.FC = () => {
       await supabase.from('reactions').insert({ post_id: postId, user_id: currentUserId, emoji });
       setUserReactions(prev => ({ ...prev, [postId]: emoji }));
     }
-
-    // Reaksiyon sayılarını güncelle
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
       const updated = { ...p };
@@ -167,6 +212,7 @@ const GlobalFeed: React.FC = () => {
 
   return (
     <div className="w-full space-y-4">
+
       {/* Başlık */}
       <div className="space-y-1">
         <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
@@ -181,6 +227,63 @@ const GlobalFeed: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* ─── ŞEHİR BLOKLARI ─── */}
+      {cities.length > 0 && (
+        <div
+          className="flex gap-2 overflow-x-auto pb-1"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {/* All butonu */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedCity(null)}
+            className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+            style={{
+              background: selectedCity === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+              borderColor: selectedCity === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+              minWidth: '56px',
+            }}
+          >
+            <span className="text-lg">🌍</span>
+            <span
+              className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
+              style={{ color: selectedCity === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
+            >
+              All
+            </span>
+          </motion.button>
+
+          {/* Şehir blokları */}
+          {cities.map((c) => (
+            <motion.button
+              key={c.city}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelectedCity(selectedCity === c.city ? null : c.city)}
+              className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+              style={{
+                background: selectedCity === c.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                borderColor: selectedCity === c.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                minWidth: '64px',
+              }}
+            >
+              <span className="text-lg">{getFlag(c.country_code)}</span>
+              <span
+                className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
+                style={{ color: selectedCity === c.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+              >
+                {c.city.length > 8 ? c.city.slice(0, 7) + '…' : c.city}
+              </span>
+              <span
+                className="font-jetbrains text-[8px] mt-0.5"
+                style={{ color: 'rgba(255,255,255,0.25)' }}
+              >
+                {c.count}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      )}
 
       {/* Filtreler */}
       <div className="flex gap-2">
@@ -199,6 +302,28 @@ const GlobalFeed: React.FC = () => {
         ))}
       </div>
 
+      {/* Seçili şehir etiketi */}
+      <AnimatePresence>
+        {selectedCity && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-2"
+          >
+            <span className="font-jetbrains text-[10px] text-[var(--accent-electric)] uppercase tracking-widest">
+              Showing: {selectedCity}
+            </span>
+            <button
+              onClick={() => setSelectedCity(null)}
+              className="text-[10px] text-white/30 hover:text-white/60 font-jetbrains"
+            >
+              ✕ clear
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* İçerik */}
       {loading ? (
         <div className="py-16 flex flex-col items-center gap-3">
@@ -207,12 +332,13 @@ const GlobalFeed: React.FC = () => {
         </div>
       ) : posts.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="font-jetbrains text-sm text-[var(--text-secondary)]">No moments yet.</p>
+          <p className="font-jetbrains text-sm text-[var(--text-secondary)]">
+            {selectedCity ? `No moments from ${selectedCity} yet.` : 'No moments yet.'}
+          </p>
           <p className="font-jetbrains text-xs text-[var(--text-ghost)] mt-1">Be the first to capture.</p>
         </div>
       ) : (
         <>
-          {/* TikTok snap scroll container */}
           <div
             style={{
               height: '100dvh',
@@ -258,11 +384,8 @@ const GlobalFeed: React.FC = () => {
               </div>
             ))}
 
-            {/* Load more trigger */}
             {hasMore && (
-              <div
-                style={{ scrollSnapAlign: 'start', height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
+              <div style={{ scrollSnapAlign: 'start', height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <button
                   onClick={() => fetchPosts(false)}
                   disabled={loadingMore}
