@@ -74,7 +74,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   return (
     <motion.div
       className="relative w-full rounded-none overflow-hidden bg-black"
-      style={{ height: '100dvh', width: '100%' }}
+      style={{ height: '100%', width: '100%' }}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
