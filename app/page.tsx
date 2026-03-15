@@ -156,18 +156,14 @@ const ONEAppDemo = () => {
     setHasCapturedToday(false);
   }, [user]);
 
-  // Splash bittikten sonra intro kontrolü
+  // Splash bittikten sonra her açılışta intro göster
   const handleSplashComplete = () => {
     setShowSplash(false);
-    const seen = localStorage.getItem('one_intro_seen');
-    if (!seen) {
-      setShowIntro(true);
-    }
+    setShowIntro(true);
   };
 
-  // Intro'yu kapat, bir daha gösterme
+  // Intro'yu kapat
   const handleIntroEnter = () => {
-    localStorage.setItem('one_intro_seen', '1');
     setShowIntro(false);
   };
 
