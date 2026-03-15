@@ -3,7 +3,6 @@
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { EmojiType } from '@/lib/types';
-import EmojiReactionSystem from './EmojiReactionSystem';
 
 interface VideoCardProps {
   id: string;
@@ -22,11 +21,18 @@ interface VideoCardProps {
   onReport?: (postId: string) => void;
 }
 
+const EMOJIS: { emoji: EmojiType; key: string }[] = [
+  { emoji: '❤️', key: 'heart' },
+  { emoji: '😮', key: 'wow' },
+  { emoji: '😂', key: 'haha' },
+  { emoji: '🌍', key: 'world' },
+  { emoji: '🙏', key: 'pray' },
+];
+
 const VideoCard: React.FC<VideoCardProps> = ({
   id,
   fileUrl,
   city,
-  country,
   countryCode,
   capturedAt,
   reactionHeart = 0,
@@ -40,9 +46,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showReactions, setShowReactions] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
 
-  const reactionCounts = {
+  const counts: Record<EmojiType, number> = {
     '❤️': reactionHeart,
     '😮': reactionWow,
     '😂': reactionHaha,
@@ -50,6 +56,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
     '🙏': reactionPray,
   };
 
+  const totalReactions = reactionHeart + reactionWow + reactionHaha + reactionWorld + reactionPray;
   const timeAgo = capturedAt ? formatTimeAgo(new Date(capturedAt)) : '';
 
   const handleTap = () => {
@@ -61,15 +68,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
-    setShowReactions(true);
+    setShowEmojis(true);
   };
 
   return (
     <motion.div
       className="relative w-full rounded-2xl overflow-hidden bg-black"
       style={{ aspectRatio: '9/16' }}
-      whileTap={{ scale: 0.98 }}
-      onClick={handleTap}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
     >
       {/* Video */}
       <video
@@ -78,59 +86,83 @@ const VideoCard: React.FC<VideoCardProps> = ({
         playsInline
         muted
         preload="metadata"
-        loop
-        onEnded={() => setIsPlaying(false)}
+        onClick={handleTap}
+        onEnded={() => { setIsPlaying(false); }}
         style={{
           position: 'absolute',
           inset: 0,
           width: '100%',
           height: '100%',
           objectFit: 'cover',
+          cursor: 'pointer',
         }}
       />
 
       {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.8) 100%)' }}
+      />
 
-      {/* Play icon — sadece duraklatılmışsa */}
+      {/* Play butonu — sadece duraklatılmışsa */}
       {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
-            <span className="text-white text-xl ml-1">▶</span>
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          onClick={handleTap}
+          style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,217,255,0.2)', border: '1.5px solid rgba(0,217,255,0.6)' }}
+          >
+            <span className="text-white text-sm ml-0.5">▶</span>
           </div>
         </div>
       )}
 
-      {/* Üst — konum */}
-      <div className="absolute top-3 left-3 right-3 flex items-start justify-between z-10">
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] font-jetbrains tracking-widest text-white uppercase">
-            📍 {city || 'Unknown'}{countryCode ? `, ${countryCode}` : ''}
-          </span>
-        </div>
+      {/* Üst — konum + rapor */}
+      <div className="absolute top-2 left-2 right-2 flex items-start justify-between z-10 pointer-events-none">
+        <span
+          className="text-[9px] font-jetbrains tracking-wider text-white uppercase"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+        >
+          📍 {city || '?'}{countryCode ? `, ${countryCode}` : ''}
+        </span>
         <button
+          className="text-white/40 text-xs pointer-events-auto"
           onClick={(e) => { e.stopPropagation(); onReport?.(id); }}
-          className="text-[9px] text-white/40 font-jetbrains"
         >
           ···
         </button>
       </div>
 
       {/* Alt — zaman + reaksiyonlar */}
-      <div className="absolute bottom-3 left-3 right-3 z-10 space-y-2">
-        <p className="font-jetbrains text-[9px] text-white/50 uppercase tracking-widest">{timeAgo}</p>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: showReactions ? 1 : 0.4 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <EmojiReactionSystem
-            onReact={(emoji) => onReact?.(id, emoji)}
-            userReaction={userReaction}
-            reactionCounts={reactionCounts}
-            interactive={true}
-          />
-        </motion.div>
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-2 space-y-1">
+        <p className="font-jetbrains text-[8px] text-white/50 uppercase tracking-widest">{timeAgo}</p>
+
+        {/* Emoji bar — kompakt */}
+        <div className="flex gap-1 flex-wrap">
+          {EMOJIS.map(({ emoji }) => {
+            const count = counts[emoji];
+            const isSelected = userReaction === emoji;
+            return (
+              <button
+                key={emoji}
+                onClick={(e) => { e.stopPropagation(); onReact?.(id, emoji); }}
+                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px]"
+                style={{
+                  background: isSelected ? 'rgba(0,217,255,0.3)' : 'rgba(0,0,0,0.5)',
+                  border: isSelected ? '1px solid rgba(0,217,255,0.6)' : '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                <span>{emoji}</span>
+                {count > 0 && (
+                  <span className="font-jetbrains text-[8px] text-white/70">{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </motion.div>
   );
