@@ -114,12 +114,14 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center"
             style={{
-              background: 'rgba(0,217,255,0.15)',
-              border: '2.5px solid #00D9FF',
-              boxShadow: '0 0 30px rgba(0,217,255,0.5), 0 0 60px rgba(0,217,255,0.2)',
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1.5px solid rgba(255,255,255,0.4)',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
             }}
           >
-            <span className="text-3xl ml-1" style={{ color: '#00D9FF', textShadow: '0 0 15px #00D9FF' }}>▶</span>
+            <span className="text-3xl ml-1" style={{ color: '#ffffff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>▶</span>
           </div>
         </div>
       )}
