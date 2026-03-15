@@ -16,7 +16,7 @@ import AppNavigation from '@/components/ONE/AppNavigation';
 import ProfileScreen from '@/components/ONE/ProfileScreen';
 import StoryFlowBanner from '@/components/ONE/StoryFlowBanner';
 import LoginButton from '@/components/LoginButton';
-import { mockPhotos, mockCities, mockUserProfile } from '@/lib/mockData';
+import { mockCities, mockUserProfile } from '@/lib/mockData';
 
 type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile';
 
@@ -139,7 +139,7 @@ const ONEAppDemo = () => {
       case 'feed':
         return (
           <motion.div key="feed" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <GlobalFeed photos={mockPhotos} />
+            <GlobalFeed />
           </motion.div>
         );
       case 'map':
