@@ -15,13 +15,101 @@ import AppNavigation from '@/components/ONE/AppNavigation';
 import ProfileScreen from '@/components/ONE/ProfileScreen';
 import StoryFlowBanner from '@/components/ONE/StoryFlowBanner';
 import LoginButton from '@/components/LoginButton';
-import { mockCities, mockUserProfile } from '@/lib/mockData';
+import { mockCities, mockPhotos } from '@/lib/mockData';
 
 type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile';
 
+// ─── INTRO EKRANI ───────────────────────────────────────────────
+const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 z-[300] flex flex-col items-center justify-between px-8 py-16"
+    style={{ background: '#05070F' }}
+  >
+    {/* Logo */}
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="flex flex-col items-center gap-2 mt-8"
+    >
+      <h1
+        className="font-bebas leading-none"
+        style={{
+          fontSize: 'clamp(96px, 28vw, 160px)',
+          background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}
+      >
+        ONE
+      </h1>
+    </motion.div>
+
+    {/* Motto */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.7 }}
+      className="flex flex-col items-center gap-6 text-center"
+    >
+      <div className="space-y-1">
+        <p className="font-bebas text-4xl text-white tracking-wide">The world.</p>
+        <p className="font-bebas text-4xl tracking-wide" style={{ color: '#7C3AED' }}>Right now.</p>
+        <p className="font-bebas text-4xl tracking-wide" style={{ color: '#00D9FF' }}>Unfiltered.</p>
+      </div>
+
+      {/* Konsept */}
+      <div
+        className="w-full rounded-2xl px-6 py-5 space-y-3"
+        style={{ background: 'rgba(0,217,255,0.04)', border: '1px solid rgba(0,217,255,0.12)' }}
+      >
+        <p className="font-jetbrains text-[11px] text-white/50 uppercase tracking-[0.2em]">What is ONE?</p>
+        <p className="font-dm-sans text-sm text-white/80 leading-relaxed">
+          Every day, a window opens. The whole world captures the same moment — unfiltered, unedited, real.
+        </p>
+        <p className="font-dm-sans text-sm text-white/80 leading-relaxed">
+          No followers. No algorithms. No performance. Just humanity, right now.
+        </p>
+        <p className="font-jetbrains text-[10px] text-white/30 uppercase tracking-wider mt-2">
+          Your moments become your annual documentary.
+        </p>
+      </div>
+    </motion.div>
+
+    {/* Enter Butonu */}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1.1 }}
+      className="w-full"
+    >
+      <motion.button
+        onClick={onEnter}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        className="w-full py-4 rounded-2xl font-bebas text-2xl tracking-widest text-white"
+        style={{
+          background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 100%)',
+          boxShadow: '0 0 40px rgba(0,217,255,0.2)',
+        }}
+      >
+        ENTER REALITY
+      </motion.button>
+      <p className="text-center font-jetbrains text-[9px] text-white/20 mt-3 uppercase tracking-widest">
+        Humanity's diary — since 2026
+      </p>
+    </motion.div>
+  </motion.div>
+);
+
+// ─── ANA UYGULAMA ────────────────────────────────────────────────
 const ONEAppDemo = () => {
   const [activeTab, setActiveTab] = useState<TabType>('feed');
   const [showSplash, setShowSplash] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
@@ -68,6 +156,21 @@ const ONEAppDemo = () => {
     setHasCapturedToday(false);
   }, [user]);
 
+  // Splash bittikten sonra intro kontrolü
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    const seen = localStorage.getItem('one_intro_seen');
+    if (!seen) {
+      setShowIntro(true);
+    }
+  };
+
+  // Intro'yu kapat, bir daha gösterme
+  const handleIntroEnter = () => {
+    localStorage.setItem('one_intro_seen', '1');
+    setShowIntro(false);
+  };
+
   const [sleepConfig, setSleepConfig] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('one_sleep_settings');
@@ -109,7 +212,6 @@ const ONEAppDemo = () => {
     initDailyLogic();
   }, [sleepConfig, user]);
 
-  // Tab değişince içerik alanına scroll et
   const handleTabChange = (tab: TabType) => {
     if (tab === 'capture') {
       if (!user) {
@@ -124,13 +226,11 @@ const ONEAppDemo = () => {
       return;
     }
     setActiveTab(tab);
-    // Feed dışında scroll en üste, feed'de de üste
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 50);
   };
 
-  // Feed tabında hero + content, diğerlerinde sadece content
   const isFeedTab = activeTab === 'feed';
 
   const renderTabContent = () => {
@@ -157,7 +257,6 @@ const ONEAppDemo = () => {
         return (
           <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <ProfileScreen
-              userProfile={user ? { ...mockUserProfile, email: user.email } : mockUserProfile}
               isPremium={isPremium}
               onUpgrade={() => setIsPremium(true)}
               sleepConfig={sleepConfig}
@@ -172,10 +271,9 @@ const ONEAppDemo = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg-void)] overflow-x-hidden text-white">
-      {/* ─── SAYFA İÇERİĞİ ─── */}
       <div className="pb-28">
 
-        {/* ─── HERO — Sadece Feed tabında görünür ─── */}
+        {/* HERO — Sadece Feed'de */}
         <AnimatePresence>
           {isFeedTab && (
             <motion.div
@@ -186,7 +284,6 @@ const ONEAppDemo = () => {
               transition={{ duration: 0.3 }}
               className="px-5 pt-10 pb-2 relative"
             >
-              {/* Sağ üst: Video önizleme + Login */}
               <div className="absolute top-10 right-5 z-10 scale-90 origin-right flex items-center gap-3">
                 {lastCapturedVideo && (
                   <motion.button
@@ -214,7 +311,7 @@ const ONEAppDemo = () => {
               </h1>
               <div className="flex justify-between items-center">
                 <p className="font-jetbrains text-[10px] tracking-[0.25em] text-[var(--text-ghost)] uppercase mt-1">
-                  3 seconds. No filter. Real.
+                  The world. Right now. Unfiltered.
                 </p>
                 {hasCapturedToday && (
                   <span className="text-[9px] px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-500/10">
@@ -226,7 +323,7 @@ const ONEAppDemo = () => {
           )}
         </AnimatePresence>
 
-        {/* ─── Feed dışı tablarda küçük başlık ─── */}
+        {/* Mini Header — Feed dışı tablarda */}
         <AnimatePresence>
           {!isFeedTab && (
             <motion.div
@@ -265,7 +362,7 @@ const ONEAppDemo = () => {
           )}
         </AnimatePresence>
 
-        {/* ─── StoryFlow Banner — Sadece Feed'de ─── */}
+        {/* StoryFlow Banner */}
         {isFeedTab && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -277,7 +374,7 @@ const ONEAppDemo = () => {
           </motion.div>
         )}
 
-        {/* ─── TAB İÇERİĞİ — Her zaman sayfanın üstünde, görünür alanda ─── */}
+        {/* Tab İçeriği */}
         <div ref={contentRef} className="mt-4 px-5">
           <AnimatePresence mode="wait">
             {renderTabContent()}
@@ -285,11 +382,11 @@ const ONEAppDemo = () => {
         </div>
 
         <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] px-5 text-center pb-4">
-          <p className="font-jetbrains text-xs text-[var(--text-ghost)]">ONE — 3 seconds. No filter. Real.</p>
+          <p className="font-jetbrains text-xs text-[var(--text-ghost)]">The world. Right now. Unfiltered.</p>
         </div>
       </div>
 
-      {/* ─── BOTTOM NAVIGATION — md:hidden kaldırıldı, her zaman görünür ─── */}
+      {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50">
         <AppNavigation
           activeTab={activeTab}
@@ -298,12 +395,17 @@ const ONEAppDemo = () => {
         />
       </div>
 
-      {/* ─── SPLASH ─── */}
+      {/* Splash */}
       <AnimatePresence>
-        {showSplash && <SplashScreen duration={2000} onComplete={() => setShowSplash(false)} />}
+        {showSplash && <SplashScreen duration={2000} onComplete={handleSplashComplete} />}
       </AnimatePresence>
 
-      {/* ─── BİLDİRİM ─── */}
+      {/* Intro — İlk açılışta */}
+      <AnimatePresence>
+        {showIntro && <IntroScreen onEnter={handleIntroEnter} />}
+      </AnimatePresence>
+
+      {/* Bildirim */}
       <AnimatePresence>
         {showNotification && user && (
           <NotificationMoment
@@ -316,7 +418,7 @@ const ONEAppDemo = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── HATA MESAJI ─── */}
+      {/* Hata Mesajı */}
       <AnimatePresence>
         {uploadError && (
           <motion.div
@@ -341,7 +443,7 @@ const ONEAppDemo = () => {
 
       {showOnboarding && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
 
-      {/* ─── KAMERA — Tam Ekran, alttan açılır ─── */}
+      {/* Kamera */}
       <AnimatePresence>
         {cameraOpen && (
           <motion.div
@@ -351,7 +453,6 @@ const ONEAppDemo = () => {
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-[100] bg-black"
           >
-            {/* Kapat butonu */}
             <button
               onClick={() => { setCameraOpen(false); setActiveTab('feed'); }}
               className="absolute top-12 left-6 z-[110] w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white"
@@ -361,7 +462,6 @@ const ONEAppDemo = () => {
 
             <CameraCapture
               onCaptureComplete={async ({ blob, location, timestamp }) => {
-                // 1. Kamerayı kapat
                 setCameraOpen(false);
                 setActiveTab('feed');
                 setLastCapturedVideo(null);
@@ -370,7 +470,6 @@ const ONEAppDemo = () => {
                 setShowVideoReview(true);
                 setUploading(true);
 
-                // 2. Upload et, Supabase public URL al — blob URL Android'de siyah çıkıyor
                 try {
                   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
                   const file = new File([blob], `one_${Date.now()}.${ext}`, { type: blob.type });
@@ -380,7 +479,6 @@ const ONEAppDemo = () => {
                   setHasCapturedToday(true);
                   setUploadSuccess(true);
                 } catch (err: any) {
-                  // Fallback: blob URL
                   const url = URL.createObjectURL(blob);
                   setLastCapturedVideo(url);
                   setUploadError('Upload failed: ' + (err.message || 'Unknown error'));
@@ -393,7 +491,7 @@ const ONEAppDemo = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── VİDEO REVIEW — Kayıt sonrası uygulama içi görünüm ─── */}
+      {/* Video Review */}
       <AnimatePresence>
         {showVideoReview && (
           <motion.div
@@ -415,7 +513,6 @@ const ONEAppDemo = () => {
                 height: '65vh',
               }}
             >
-              {/* Video — src hazır değilse spinner göster */}
               {lastCapturedVideo && !uploading ? (
                 <div className="absolute inset-0 z-10" onClick={() => {
                   if (reviewVideoRef.current) {
@@ -426,27 +523,15 @@ const ONEAppDemo = () => {
                     ref={reviewVideoRef}
                     key={lastCapturedVideo}
                     src={lastCapturedVideo}
-                    playsInline
-                    autoPlay
-                    muted
-                    controls
-                    preload="auto"
-                    onLoadedData={() => {
-                      reviewVideoRef.current?.play().catch(() => {});
-                    }}
+                    playsInline autoPlay muted controls preload="auto"
+                    onLoadedData={() => { reviewVideoRef.current?.play().catch(() => {}); }}
                     onEnded={() => {
                       if (reviewVideoRef.current) {
                         reviewVideoRef.current.currentTime = 0;
                         reviewVideoRef.current.play().catch(() => {});
                       }
                     }}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
               ) : (
@@ -458,22 +543,15 @@ const ONEAppDemo = () => {
                 </div>
               )}
 
-              {/* Üst etiket — video üzerinde hafif */}
               <div className="absolute top-4 left-0 right-0 flex justify-center z-20 pointer-events-none">
                 <span
                   className="text-[10px] tracking-[0.3em] uppercase font-light px-3 py-1 rounded-full"
-                  style={{
-                    color: '#00D9FF',
-                    background: 'rgba(0,0,0,0.6)',
-                    textShadow: '0 0 10px #00D9FF',
-                    border: '1px solid rgba(0,217,255,0.3)',
-                  }}
+                  style={{ color: '#00D9FF', background: 'rgba(0,0,0,0.6)', textShadow: '0 0 10px #00D9FF', border: '1px solid rgba(0,217,255,0.3)' }}
                 >
                   ONE · RAW REALITY
                 </span>
               </div>
 
-              {/* Kapat */}
               <button
                 onClick={() => {
                   setShowVideoReview(false);
@@ -486,27 +564,14 @@ const ONEAppDemo = () => {
               </button>
             </motion.div>
 
-            {/* Upload durum kartı — video kartının altında */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="mt-4 w-full max-w-sm px-4 py-3 rounded-2xl flex items-center gap-3"
               style={{
-                background: uploading
-                  ? 'rgba(0,217,255,0.08)'
-                  : uploadSuccess
-                  ? 'rgba(34,197,94,0.12)'
-                  : uploadError
-                  ? 'rgba(239,68,68,0.12)'
-                  : 'rgba(0,217,255,0.08)',
-                border: uploading
-                  ? '1px solid rgba(0,217,255,0.25)'
-                  : uploadSuccess
-                  ? '1px solid rgba(34,197,94,0.35)'
-                  : uploadError
-                  ? '1px solid rgba(239,68,68,0.35)'
-                  : '1px solid rgba(0,217,255,0.25)',
+                background: uploading ? 'rgba(0,217,255,0.08)' : uploadSuccess ? 'rgba(34,197,94,0.12)' : uploadError ? 'rgba(239,68,68,0.12)' : 'rgba(0,217,255,0.08)',
+                border: uploading ? '1px solid rgba(0,217,255,0.25)' : uploadSuccess ? '1px solid rgba(34,197,94,0.35)' : uploadError ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(0,217,255,0.25)',
               }}
             >
               {uploading && (
