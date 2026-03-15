@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { EmojiType } from '@/lib/types';
@@ -31,13 +31,14 @@ interface CityBlock {
 
 const PAGE_SIZE = 10;
 
-// Ülke kodu → bayrak emoji
 const getFlag = (code: string | null) => {
   if (!code) return '🌍';
   return [...code.trim().toUpperCase()]
     .map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)))
     .join('');
 };
+
+const NAV_HEIGHT = 80; // AppNavigation yüksekliği (px)
 
 const GlobalFeed: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -50,11 +51,28 @@ const GlobalFeed: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, EmojiType>>({});
 
-  // Şehir blokları
   const [cities, setCities] = useState<CityBlock[]>([]);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  // Kullanıcı bilgisi
+  // Header yüksekliğini dinamik ölç
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useEffect(() => {
+    if (!headerRef.current) return;
+    setHeaderHeight(headerRef.current.offsetHeight);
+    const observer = new ResizeObserver(() => {
+      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
+    });
+    observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Her video kartının tam yüksekliği = ekran - header - nav
+  const cardHeight = headerHeight > 0
+    ? `calc(100dvh - ${headerHeight}px - ${NAV_HEIGHT}px)`
+    : '60dvh';
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUserId(user?.id || null);
@@ -69,7 +87,6 @@ const GlobalFeed: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Aktif şehirleri çek
   useEffect(() => {
     const fetchCities = async () => {
       const { data, error } = await supabase
@@ -81,7 +98,6 @@ const GlobalFeed: React.FC = () => {
 
       if (error || !data) return;
 
-      // Şehir bazında say
       const map: Record<string, { country_code: string | null; count: number }> = {};
       data.forEach((p: any) => {
         if (!p.city) return;
@@ -100,7 +116,6 @@ const GlobalFeed: React.FC = () => {
     fetchCities();
   }, []);
 
-  // Kullanıcının reaksiyonlarını çek
   const fetchUserReactions = useCallback(async (postIds: string[]) => {
     if (!currentUserId || postIds.length === 0) return;
     const { data } = await supabase
@@ -115,7 +130,6 @@ const GlobalFeed: React.FC = () => {
     }
   }, [currentUserId]);
 
-  // Postları çek
   const fetchPosts = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
     if (reset) { setLoading(true); setPosts([]); setPage(0); setHasMore(true); }
@@ -127,7 +141,6 @@ const GlobalFeed: React.FC = () => {
         .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
         .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
-      // Şehir filtresi
       if (selectedCity) {
         query = query.eq('city', selectedCity);
       }
@@ -170,12 +183,10 @@ const GlobalFeed: React.FC = () => {
     }
   }, [filter, page, userCoords, fetchUserReactions, selectedCity]);
 
-  // Filtre veya şehir değişince yeniden çek
   useEffect(() => {
     fetchPosts(true);
   }, [filter, selectedCity]);
 
-  // Reaksiyon ekle/kaldır
   const handleReact = async (postId: string, emoji: EmojiType) => {
     if (!currentUserId) return;
     const existing = userReactions[postId];
@@ -211,13 +222,14 @@ const GlobalFeed: React.FC = () => {
   ];
 
   return (
-    <div
-      className="w-full flex flex-col"
-      style={{ height: '100dvh' }}
-    >
-      {/* ─── STICKY HEADER ─── */}
-      <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
+    <div className="w-full flex flex-col bg-[var(--bg-void)]" style={{ height: '100dvh' }}>
 
+      {/* ─── SABİT HEADER ─── */}
+      <div
+        ref={headerRef}
+        className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]"
+        style={{ zIndex: 10 }}
+      >
         {/* Başlık */}
         <div className="space-y-1">
           <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
@@ -339,58 +351,68 @@ const GlobalFeed: React.FC = () => {
           <p className="font-jetbrains text-xs text-[var(--text-ghost)] mt-1">Be the first to capture.</p>
         </div>
       ) : (
+        /* Scroll container — flex-1 ile sadece kalan alanı kaplar */
         <div
           className="flex-1 overflow-y-scroll"
           style={{
             scrollSnapType: 'y mandatory',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            paddingBottom: '80px', // navigation bar yüksekliği
+            overflowAnchor: 'none',
           }}
         >
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                style={{
-                  scrollSnapAlign: 'start',
-                  scrollSnapStop: 'always',
-                  height: '100%',
-                  minHeight: '100%',
-                  width: '100%',
-                  flexShrink: 0,
-                }}
-              >
-                <VideoCard
-                  id={post.id}
-                  fileUrl={post.file_url}
-                  city={post.city}
-                  country={post.country}
-                  countryCode={post.country_code}
-                  capturedAt={post.captured_at}
-                  reactionHeart={post.reaction_heart}
-                  reactionWow={post.reaction_wow}
-                  reactionHaha={post.reaction_haha}
-                  reactionWorld={post.reaction_world}
-                  reactionPray={post.reaction_pray}
-                  userReaction={userReactions[post.id] || null}
-                  onReact={handleReact}
-                  onReport={(id) => console.log('Report:', id)}
-                />
-              </div>
-            ))}
+          {posts.map((post) => (
+            /* Her kart: tam olarak cardHeight kadar — ne taşar ne eksik kalır */
+            <div
+              key={post.id}
+              style={{
+                scrollSnapAlign: 'start',
+                scrollSnapStop: 'always',
+                height: cardHeight,
+                width: '100%',
+                flexShrink: 0,
+                position: 'relative',
+              }}
+            >
+              <VideoCard
+                id={post.id}
+                fileUrl={post.file_url}
+                city={post.city}
+                country={post.country}
+                countryCode={post.country_code}
+                capturedAt={post.captured_at}
+                reactionHeart={post.reaction_heart}
+                reactionWow={post.reaction_wow}
+                reactionHaha={post.reaction_haha}
+                reactionWorld={post.reaction_world}
+                reactionPray={post.reaction_pray}
+                userReaction={userReactions[post.id] || null}
+                onReact={handleReact}
+                onReport={(id) => console.log('Report:', id)}
+              />
+            </div>
+          ))}
 
-            {hasMore && (
-              <div style={{ scrollSnapAlign: 'start', height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <button
-                  onClick={() => fetchPosts(false)}
-                  disabled={loadingMore}
-                  className="px-6 py-3 border border-[var(--border-glow)] rounded-lg font-jetbrains text-sm text-[var(--accent-electric)] disabled:opacity-50"
-                >
-                  {loadingMore ? 'Loading...' : 'Load more'}
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Load more butonu — aynı snap yüksekliğinde */}
+          {hasMore && (
+            <div
+              style={{
+                scrollSnapAlign: 'start',
+                height: cardHeight,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <button
+                onClick={() => fetchPosts(false)}
+                disabled={loadingMore}
+                className="px-6 py-3 border border-[var(--border-glow)] rounded-lg font-jetbrains text-sm text-[var(--accent-electric)] disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading...' : 'Load more'}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
