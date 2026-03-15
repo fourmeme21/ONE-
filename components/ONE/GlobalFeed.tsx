@@ -212,48 +212,67 @@ const GlobalFeed: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4">
-            <AnimatePresence>
-              {posts.map((post, index) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <VideoCard
-                    id={post.id}
-                    fileUrl={post.file_url}
-                    city={post.city}
-                    country={post.country}
-                    countryCode={post.country_code}
-                    capturedAt={post.captured_at}
-                    reactionHeart={post.reaction_heart}
-                    reactionWow={post.reaction_wow}
-                    reactionHaha={post.reaction_haha}
-                    reactionWorld={post.reaction_world}
-                    reactionPray={post.reaction_pray}
-                    userReaction={userReactions[post.id] || null}
-                    onReact={handleReact}
-                    onReport={(id) => console.log('Report:', id)}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          {/* Load more */}
-          {hasMore && (
-            <div className="py-4 text-center">
-              <button
-                onClick={() => fetchPosts(false)}
-                disabled={loadingMore}
-                className="px-6 py-3 border border-[var(--border-glow)] rounded-lg font-jetbrains text-sm text-[var(--accent-electric)] disabled:opacity-50"
+          {/* TikTok snap scroll container */}
+          <div
+            style={{
+              height: '100dvh',
+              overflowY: 'scroll',
+              scrollSnapType: 'y mandatory',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10,
+            }}
+          >
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                style={{
+                  scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always',
+                  height: '100dvh',
+                  width: '100%',
+                  flexShrink: 0,
+                }}
               >
-                {loadingMore ? 'Loading...' : 'Load more'}
-              </button>
-            </div>
-          )}
+                <VideoCard
+                  id={post.id}
+                  fileUrl={post.file_url}
+                  city={post.city}
+                  country={post.country}
+                  countryCode={post.country_code}
+                  capturedAt={post.captured_at}
+                  reactionHeart={post.reaction_heart}
+                  reactionWow={post.reaction_wow}
+                  reactionHaha={post.reaction_haha}
+                  reactionWorld={post.reaction_world}
+                  reactionPray={post.reaction_pray}
+                  userReaction={userReactions[post.id] || null}
+                  onReact={handleReact}
+                  onReport={(id) => console.log('Report:', id)}
+                />
+              </div>
+            ))}
+
+            {/* Load more trigger */}
+            {hasMore && (
+              <div
+                style={{ scrollSnapAlign: 'start', height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <button
+                  onClick={() => fetchPosts(false)}
+                  disabled={loadingMore}
+                  className="px-6 py-3 border border-[var(--border-glow)] rounded-lg font-jetbrains text-sm text-[var(--accent-electric)] disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load more'}
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
