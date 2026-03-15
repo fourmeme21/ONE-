@@ -354,7 +354,8 @@ const GlobalFeed: React.FC = () => {
                 style={{
                   scrollSnapAlign: 'start',
                   scrollSnapStop: 'always',
-                  height: '100dvh',
+                  height: '100%',
+                  minHeight: '100%',
                   width: '100%',
                   flexShrink: 0,
                 }}
