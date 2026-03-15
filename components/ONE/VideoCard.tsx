@@ -74,7 +74,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   return (
     <motion.div
       className="relative w-full rounded-2xl overflow-hidden bg-black"
-      style={{ aspectRatio: '9/16' }}
+      style={{ aspectRatio: '9/16', maxWidth: '100%' }}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
@@ -140,8 +140,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       <div className="absolute bottom-0 left-0 right-0 z-10 p-2 space-y-1">
         <p className="font-jetbrains text-[8px] text-white/50 uppercase tracking-widest">{timeAgo}</p>
 
-        {/* Emoji bar — kompakt */}
-        <div className="flex gap-1 flex-wrap">
+        {/* Emoji bar — tek satır, büyük */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {EMOJIS.map(({ emoji }) => {
             const count = counts[emoji];
             const isSelected = userReaction === emoji;
@@ -149,15 +149,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
               <button
                 key={emoji}
                 onClick={(e) => { e.stopPropagation(); onReact?.(id, emoji); }}
-                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px]"
+                className="flex items-center gap-1 px-2 py-1 rounded-full shrink-0"
                 style={{
-                  background: isSelected ? 'rgba(0,217,255,0.3)' : 'rgba(0,0,0,0.5)',
-                  border: isSelected ? '1px solid rgba(0,217,255,0.6)' : '1px solid rgba(255,255,255,0.1)',
+                  background: isSelected ? 'rgba(0,217,255,0.3)' : 'rgba(0,0,0,0.6)',
+                  border: isSelected ? '1px solid rgba(0,217,255,0.6)' : '1px solid rgba(255,255,255,0.15)',
                 }}
               >
-                <span>{emoji}</span>
+                <span className="text-base">{emoji}</span>
                 {count > 0 && (
-                  <span className="font-jetbrains text-[8px] text-white/70">{count}</span>
+                  <span className="font-jetbrains text-[10px] text-white/80">{count}</span>
                 )}
               </button>
             );
