@@ -6,6 +6,23 @@ const supabaseAnonKey = 'sb_publishable_1JoS_on8letn0YwSIhZMKA_l1F_f-b2'
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 /**
+ * IP bazlı konum — izin gerektirmez, fallback olarak kullanılır.
+ */
+export const getLocationByIP = async (): Promise<{ lat: number; lng: number } | null> => {
+  try {
+    const res = await fetch('https://ipapi.co/json/')
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.latitude && data.longitude) {
+      return { lat: data.latitude, lng: data.longitude }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Koordinattan şehir + ülke bilgisi al.
  * OpenStreetMap Nominatim — ücretsiz, API key gerektirmez.
  */
@@ -104,9 +121,15 @@ export const uploadMoment = async (
   const publicUrl = urlData?.publicUrl || null
 
   // 3. Reverse geocode — koordinattan şehir/ülke al
+  // Konum izni gelmezse IP bazlı fallback
+  let finalCoords = coords
+  if (!finalCoords) {
+    finalCoords = await getLocationByIP()
+  }
+
   let geoData: { city: string; country: string; country_code: string } | null = null
-  if (coords) {
-    geoData = await reverseGeocode(coords.lat, coords.lng)
+  if (finalCoords) {
+    geoData = await reverseGeocode(finalCoords.lat, finalCoords.lng)
   }
 
   // 4. DB'ye kaydet
@@ -116,9 +139,9 @@ export const uploadMoment = async (
       user_id: user.id,
       file_path: storageData.path,
       file_url: publicUrl,
-      latitude: coords?.lat || null,
-      longitude: coords?.lng || null,
-      location_point: coords ? `POINT(${coords.lng} ${coords.lat})` : null,
+      latitude: finalCoords?.lat || null,
+      longitude: finalCoords?.lng || null,
+      location_point: finalCoords ? `POINT(${finalCoords.lng} ${finalCoords.lat})` : null,
       city: geoData?.city || null,
       country: geoData?.country || null,
       country_code: geoData?.country_code || null,
