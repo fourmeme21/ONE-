@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { EmojiType } from '@/lib/types';
@@ -29,16 +29,22 @@ interface CityBlock {
   count: number;
 }
 
+interface CountryBlock {
+  country: string;
+  country_code: string | null;
+  count: number;
+  cities: CityBlock[];
+}
+
 const PAGE_SIZE = 10;
 
+// Ülke kodu → bayrak emoji
 const getFlag = (code: string | null) => {
   if (!code) return '🌍';
   return [...code.trim().toUpperCase()]
     .map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)))
     .join('');
 };
-
-const NAV_HEIGHT = 80;
 
 const GlobalFeed: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -51,26 +57,12 @@ const GlobalFeed: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, EmojiType>>({});
 
-  const [cities, setCities] = useState<CityBlock[]>([]);
+  // Ülke / şehir blokları
+  const [countries, setCountries] = useState<CountryBlock[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
-
-  useEffect(() => {
-    if (!headerRef.current) return;
-    setHeaderHeight(headerRef.current.offsetHeight);
-    const observer = new ResizeObserver(() => {
-      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
-    });
-    observer.observe(headerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const cardHeight = headerHeight > 0
-    ? `calc(100dvh - ${headerHeight}px - ${NAV_HEIGHT}px)`
-    : '60dvh';
-
+  // Kullanıcı bilgisi
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUserId(user?.id || null);
@@ -85,35 +77,49 @@ const GlobalFeed: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  // Ülke → şehir hiyerarşisini çek
   useEffect(() => {
-    const fetchCities = async () => {
+    const fetchCountries = async () => {
       const { data, error } = await supabase
         .from('posts')
-        .select('city, country_code')
+        .select('city, country, country_code')
         .not('city', 'is', null)
         .order('captured_at', { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (error || !data) return;
 
-      const map: Record<string, { country_code: string | null; count: number }> = {};
+      const countryMap: Record<string, { country_code: string | null; count: number; cities: Record<string, number> }> = {};
+
       data.forEach((p: any) => {
-        if (!p.city) return;
-        if (!map[p.city]) map[p.city] = { country_code: p.country_code, count: 0 };
-        map[p.city].count++;
+        const countryKey = p.country || p.country_code || 'Unknown';
+        if (!countryMap[countryKey]) {
+          countryMap[countryKey] = { country_code: p.country_code, count: 0, cities: {} };
+        }
+        countryMap[countryKey].count++;
+        if (p.city) {
+          countryMap[countryKey].cities[p.city] = (countryMap[countryKey].cities[p.city] || 0) + 1;
+        }
       });
 
-      const sorted = Object.entries(map)
-        .map(([city, val]) => ({ city, ...val }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 15);
+      const sorted: CountryBlock[] = Object.entries(countryMap)
+        .map(([country, val]) => ({
+          country,
+          country_code: val.country_code,
+          count: val.count,
+          cities: Object.entries(val.cities)
+            .map(([city, count]) => ({ city, country_code: val.country_code, count }))
+            .sort((a, b) => b.count - a.count),
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      setCities(sorted);
+      setCountries(sorted);
     };
 
-    fetchCities();
+    fetchCountries();
   }, []);
 
+  // Kullanıcının reaksiyonlarını çek
   const fetchUserReactions = useCallback(async (postIds: string[]) => {
     if (!currentUserId || postIds.length === 0) return;
     const { data } = await supabase
@@ -128,6 +134,7 @@ const GlobalFeed: React.FC = () => {
     }
   }, [currentUserId]);
 
+  // Postları çek
   const fetchPosts = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
     if (reset) { setLoading(true); setPosts([]); setPage(0); setHasMore(true); }
@@ -139,8 +146,11 @@ const GlobalFeed: React.FC = () => {
         .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
         .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
+      // Ülke / şehir filtresi
       if (selectedCity) {
         query = query.eq('city', selectedCity);
+      } else if (selectedCountry) {
+        query = query.eq('country', selectedCountry);
       }
 
       if (filter === 'top') {
@@ -179,12 +189,20 @@ const GlobalFeed: React.FC = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filter, page, userCoords, fetchUserReactions, selectedCity]);
+  }, [filter, page, userCoords, fetchUserReactions, selectedCity, selectedCountry]);
 
+  // Filtre, ülke veya şehir değişince yeniden çek
   useEffect(() => {
     fetchPosts(true);
-  }, [filter, selectedCity]);
+  }, [filter, selectedCity, selectedCountry]);
 
+  // Ülke seçilince şehir seçimini sıfırla
+  const handleCountrySelect = (country: string | null) => {
+    setSelectedCountry(country);
+    setSelectedCity(null);
+  };
+
+  // Reaksiyon ekle/kaldır
   const handleReact = async (postId: string, emoji: EmojiType) => {
     if (!currentUserId) return;
     const existing = userReactions[postId];
@@ -220,63 +238,119 @@ const GlobalFeed: React.FC = () => {
   ];
 
   return (
-    <div className="w-full flex flex-col bg-[var(--bg-void)]" style={{ height: '100dvh' }}>
+    <div
+      className="w-full flex flex-col"
+      style={{ height: '100dvh' }}
+    >
+      {/* ─── STICKY HEADER ─── */}
+      <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
 
-      {/* ─── SABİT HEADER — başlık ve sayaç kaldırıldı ─── */}
-      <div
-        ref={headerRef}
-        className="flex-shrink-0 px-5 pt-3 pb-2 space-y-2 bg-[var(--bg-void)]"
-        style={{ zIndex: 10 }}
-      >
-        {/* ─── ŞEHİR BLOKLARI ─── */}
-        {cities.length > 0 && (
-          <div
-            className="flex gap-2 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedCity(null)}
-              className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
-              style={{
-                background: selectedCity === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                borderColor: selectedCity === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                minWidth: '56px',
-              }}
+        {/* Başlık */}
+        <div className="space-y-1">
+          <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
+          <div className="flex items-center gap-2">
+            <motion.div
+              className="w-2 h-2 rounded-full bg-green-500"
+              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <span className="font-jetbrains text-xs text-[var(--text-secondary)]">
+              {posts.length} moments loaded
+            </span>
+          </div>
+        </div>
+
+        {/* ─── ÜLKE BLOKLARI ─── */}
+        {countries.length > 0 && (
+          <div className="space-y-2">
+            {/* Ülke satırı */}
+            <div
+              className="flex gap-2 overflow-x-auto pb-1"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              <span className="text-lg">🌍</span>
-              <span
-                className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
-                style={{ color: selectedCity === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
-              >
-                All
-              </span>
-            </motion.button>
-
-            {cities.map((c) => (
               <motion.button
-                key={c.city}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedCity(selectedCity === c.city ? null : c.city)}
+                onClick={() => handleCountrySelect(null)}
                 className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
                 style={{
-                  background: selectedCity === c.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                  borderColor: selectedCity === c.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                  minWidth: '64px',
+                  background: selectedCountry === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                  borderColor: selectedCountry === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                  minWidth: '56px',
                 }}
               >
-                <span className="text-lg">{getFlag(c.country_code)}</span>
+                <span className="text-lg">🌍</span>
                 <span
-                  className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
-                  style={{ color: selectedCity === c.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+                  className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
+                  style={{ color: selectedCountry === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
                 >
-                  {c.city.length > 8 ? c.city.slice(0, 7) + '…' : c.city}
-                </span>
-                <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  {c.count}
+                  All
                 </span>
               </motion.button>
-            ))}
+
+              {countries.map((c) => (
+                <motion.button
+                  key={c.country}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCountrySelect(selectedCountry === c.country ? null : c.country)}
+                  className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                  style={{
+                    background: selectedCountry === c.country ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                    borderColor: selectedCountry === c.country ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                    minWidth: '64px',
+                  }}
+                >
+                  <span className="text-lg">{getFlag(c.country_code)}</span>
+                  <span
+                    className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
+                    style={{ color: selectedCountry === c.country ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+                  >
+                    {c.country.length > 8 ? c.country.slice(0, 7) + '…' : c.country}
+                  </span>
+                  <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    {c.count}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Şehir satırı — sadece ülke seçiliyse */}
+            <AnimatePresence>
+              {selectedCountry && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex gap-2 overflow-x-auto pb-1"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {countries
+                    .find(c => c.country === selectedCountry)
+                    ?.cities.map((city) => (
+                      <motion.button
+                        key={city.city}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedCity(selectedCity === city.city ? null : city.city)}
+                        className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                        style={{
+                          background: selectedCity === city.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                          borderColor: selectedCity === city.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                          minWidth: '64px',
+                        }}
+                      >
+                        <span
+                          className="font-jetbrains text-[9px] uppercase tracking-wider text-center leading-tight"
+                          style={{ color: selectedCity === city.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+                        >
+                          {city.city.length > 8 ? city.city.slice(0, 7) + '…' : city.city}
+                        </span>
+                        <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          {city.count}
+                        </span>
+                      </motion.button>
+                    ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -297,9 +371,9 @@ const GlobalFeed: React.FC = () => {
           ))}
         </div>
 
-        {/* Seçili şehir etiketi */}
+        {/* Seçili filtre etiketi */}
         <AnimatePresence>
-          {selectedCity && (
+          {(selectedCountry || selectedCity) && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -307,10 +381,10 @@ const GlobalFeed: React.FC = () => {
               className="flex items-center gap-2"
             >
               <span className="font-jetbrains text-[10px] text-[var(--accent-electric)] uppercase tracking-widest">
-                Showing: {selectedCity}
+                {selectedCity ? `Showing: ${selectedCity}` : `Showing: ${selectedCountry}`}
               </span>
               <button
-                onClick={() => setSelectedCity(null)}
+                onClick={() => { setSelectedCity(null); setSelectedCountry(null); }}
                 className="text-[10px] text-white/30 font-jetbrains"
               >
                 ✕ clear
@@ -340,59 +414,52 @@ const GlobalFeed: React.FC = () => {
             scrollSnapType: 'y mandatory',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            overflowAnchor: 'none',
+            paddingBottom: '80px', // navigation bar yüksekliği
           }}
         >
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              style={{
-                scrollSnapAlign: 'start',
-                scrollSnapStop: 'always',
-                height: cardHeight,
-                width: '100%',
-                flexShrink: 0,
-                position: 'relative',
-              }}
-            >
-              <VideoCard
-                id={post.id}
-                fileUrl={post.file_url}
-                city={post.city}
-                country={post.country}
-                countryCode={post.country_code}
-                capturedAt={post.captured_at}
-                reactionHeart={post.reaction_heart}
-                reactionWow={post.reaction_wow}
-                reactionHaha={post.reaction_haha}
-                reactionWorld={post.reaction_world}
-                reactionPray={post.reaction_pray}
-                userReaction={userReactions[post.id] || null}
-                onReact={handleReact}
-                onReport={(id) => console.log('Report:', id)}
-              />
-            </div>
-          ))}
-
-          {hasMore && (
-            <div
-              style={{
-                scrollSnapAlign: 'start',
-                height: cardHeight,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <button
-                onClick={() => fetchPosts(false)}
-                disabled={loadingMore}
-                className="px-6 py-3 border border-[var(--border-glow)] rounded-lg font-jetbrains text-sm text-[var(--accent-electric)] disabled:opacity-50"
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                style={{
+                  scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always',
+                  height: '100%',
+                  minHeight: '100%',
+                  width: '100%',
+                  flexShrink: 0,
+                }}
               >
-                {loadingMore ? 'Loading...' : 'Load more'}
-              </button>
-            </div>
-          )}
+                <VideoCard
+                  id={post.id}
+                  fileUrl={post.file_url}
+                  city={post.city}
+                  country={post.country}
+                  countryCode={post.country_code}
+                  capturedAt={post.captured_at}
+                  reactionHeart={post.reaction_heart}
+                  reactionWow={post.reaction_wow}
+                  reactionHaha={post.reaction_haha}
+                  reactionWorld={post.reaction_world}
+                  reactionPray={post.reaction_pray}
+                  userReaction={userReactions[post.id] || null}
+                  onReact={handleReact}
+                  onReport={(id) => console.log('Report:', id)}
+                />
+              </div>
+            ))}
+
+            {hasMore && (
+              <div style={{ scrollSnapAlign: 'start', height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <button
+                  onClick={() => fetchPosts(false)}
+                  disabled={loadingMore}
+                  className="px-6 py-3 border border-[var(--border-glow)] rounded-lg font-jetbrains text-sm text-[var(--accent-electric)] disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load more'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
