@@ -46,7 +46,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showEmojis, setShowEmojis] = useState(false);
 
   const counts: Record<EmojiType, number> = {
     '❤️': reactionHeart,
@@ -56,7 +55,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
     '🙏': reactionPray,
   };
 
-  const totalReactions = reactionHeart + reactionWow + reactionHaha + reactionWorld + reactionPray;
   const timeAgo = capturedAt ? formatTimeAgo(new Date(capturedAt)) : '';
 
   const handleTap = () => {
@@ -68,7 +66,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
-    setShowEmojis(true);
   };
 
   return (
@@ -101,7 +98,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Gradient overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.8) 100%)' }}
+        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 55%, rgba(0,0,0,0.85) 100%)' }}
       />
 
       {/* Play butonu — sadece duraklatılmışsa */}
@@ -142,8 +139,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </button>
       </div>
 
-      {/* Alt — zaman + reaksiyonlar */}
-      <div className="absolute bottom-24 left-4 right-4 z-10 space-y-3">
+      {/* Alt — zaman + reaksiyonlar — bottom-16 ile nav'ın üstünde kalır */}
+      <div className="absolute bottom-16 left-4 right-4 z-10 space-y-3">
         <p className="font-jetbrains text-[10px] text-white/60 uppercase tracking-widest">{timeAgo}</p>
         <div className="flex gap-2 flex-wrap">
           {EMOJIS.map(({ emoji }) => {
