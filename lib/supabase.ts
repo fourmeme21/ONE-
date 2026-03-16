@@ -6,7 +6,7 @@ const supabaseAnonKey = 'sb_publishable_1JoS_on8letn0YwSIhZMKA_l1F_f-b2'
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 /**
- * IP bazlı konum — izin gerektirmez, fallback olarak kullanılır.
+ * IP bazl konum  izin gerektirmez, fallback olarak kullanlr.
  */
 export const getLocationByIP = async (): Promise<{ lat: number; lng: number } | null> => {
   try {
@@ -23,8 +23,8 @@ export const getLocationByIP = async (): Promise<{ lat: number; lng: number } | 
 }
 
 /**
- * Koordinattan şehir + ülke bilgisi al.
- * OpenStreetMap Nominatim — ücretsiz, API key gerektirmez.
+ * Koordinattan ehir + lke bilgisi al.
+ * OpenStreetMap Nominatim  cretsiz, API key gerektirmez.
  */
 export const reverseGeocode = async (
   lat: number,
@@ -60,7 +60,7 @@ export const reverseGeocode = async (
 }
 
 /**
- * Bugün bu kullanıcı zaten çekim yaptı mı kontrol et.
+ * Bugn bu kullanc zaten ekim yapt m kontrol et.
  */
 export const checkTodayCapture = async (): Promise<boolean> => {
   try {
@@ -90,7 +90,7 @@ export const checkTodayCapture = async (): Promise<boolean> => {
 }
 
 /**
- * Videoyu Storage'a yükle, metadata + konum bilgisini DB'ye kaydet.
+ * Videoyu Storage'a ykle, metadata + konum bilgisini DB'ye kaydet.
  */
 export const uploadMoment = async (
   file: File,
@@ -103,7 +103,7 @@ export const uploadMoment = async (
   const fileExt = file.name.split('.').pop() || 'webm'
   const fileName = `${user.id}/one_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
-  // 1. Storage'a yükle
+  // 1. Storage'a ykle
   const { data: storageData, error: storageError } = await supabase.storage
     .from('posts')
     .upload(fileName, file, {
@@ -120,8 +120,8 @@ export const uploadMoment = async (
 
   const publicUrl = urlData?.publicUrl || null
 
-  // 3. Reverse geocode — koordinattan şehir/ülke al
-  // Konum izni gelmezse IP bazlı fallback
+  // 3. Reverse geocode  koordinattan ehir/lke al
+  // Konum izni gelmezse IP bazl fallback
   let finalCoords = coords
   if (!finalCoords) {
     finalCoords = await getLocationByIP()
@@ -151,4 +151,44 @@ export const uploadMoment = async (
   if (dbError) throw new Error(dbError.message)
 
   return publicUrl || storageData.path
+}
+
+/**
+ * Get today's window from daily_windows table.
+ * Returns window data if open, null if no window today.
+ */
+export interface DailyWindow {
+  id: string;
+  date: string;
+  block: 'sabah' | 'ogle' | 'aksam';
+  window_start: string;
+  window_end: string;
+  is_global: boolean;
+}
+
+export const getTodayWindow = async (): Promise<DailyWindow | null> => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('daily_windows')
+      .select('*')
+      .eq('date', today)
+      .single();
+
+    if (error || !data) return null;
+    return data as DailyWindow;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if the window is currently active (now is between window_start and window_end).
+ */
+export const isWindowActive = (window: DailyWindow | null): boolean => {
+  if (!window) return false;
+  const now = new Date();
+  const start = new Date(window.window_start);
+  const end = new Date(window.window_end);
+  return now >= start && now <= end;
 }
