@@ -247,10 +247,10 @@ const GlobalFeed: React.FC = () => {
       className="w-full flex flex-col"
       style={{ height: '100dvh' }}
     >
-      {/* ─── STICKY HEADER ─── */}
+      {/* STICKY HEADER */}
       <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
 
-        {/* Başlık */}
+        {/* Baslik */}
         <div className="space-y-1">
           <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
           <div className="flex items-center gap-2">
@@ -265,10 +265,10 @@ const GlobalFeed: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── ÜLKE BLOKLARI ─── */}
+        {/* ULKE BLOKLARI */}
         {countries.length > 0 && (
           <div className="space-y-2">
-            {/* Ülke satırı */}
+            {/* Ulke satiri */}
             <div
               className="flex gap-2 overflow-x-auto pb-1"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -318,7 +318,7 @@ const GlobalFeed: React.FC = () => {
               ))}
             </div>
 
-            {/* Şehir satırı — sadece ülke seçiliyse */}
+            {/* Sehir satiri - sadece ulke seciliyse */}
             <AnimatePresence>
               {selectedCountry && (
                 <motion.div
@@ -374,7 +374,7 @@ const GlobalFeed: React.FC = () => {
           ))}
         </div>
 
-        {/* Seçili filtre etiketi */}
+        {/* Secili filtre etiketi */}
         <AnimatePresence>
           {(selectedCountry || selectedCity) && (
             <motion.div
@@ -397,7 +397,7 @@ const GlobalFeed: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* ─── VİDEO ALANI ─── */}
+      {/* VIDEO ALANI */}
       {loading ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
