@@ -339,15 +339,12 @@ const ONEAppDemo = () => {
             />
           </div>
 
-          {/* Bildirim */}
+          {/* Bildirim — sadece gösterir, kamerayı otomatik açmaz */}
           <AnimatePresence>
             {showNotification && user && (
               <NotificationMoment
                 isActive={true}
-                onCapture={() => {
-                  setShowNotification(false);
-                  setCameraOpen(true);
-                }}
+                onCapture={() => setShowNotification(false)}
               />
             )}
           </AnimatePresence>
