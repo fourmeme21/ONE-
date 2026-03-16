@@ -15,7 +15,6 @@ import AppNavigation from '@/components/ONE/AppNavigation';
 import ProfileScreen from '@/components/ONE/ProfileScreen';
 import StoryFlowBanner from '@/components/ONE/StoryFlowBanner';
 import LoginButton from '@/components/LoginButton';
-import { mockCities, mockPhotos } from '@/lib/mockData';
 
 type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile';
 
@@ -239,13 +238,13 @@ const ONEAppDemo = () => {
       case 'map':
         return (
           <motion.div key="map" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <WorldHeatmap cities={mockCities} />
+            <WorldHeatmap />
           </motion.div>
         );
       case 'archive':
         return (
           <motion.div key="archive" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TimeArchive photos={mockPhotos} isPremium={isPremium} onUpgrade={() => setIsPremium(true)} />
+            <TimeArchive />
           </motion.div>
         );
       case 'profile':
