@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { uploadMoment, checkTodayCapture, supabase } from '@/lib/supabase';
+import { uploadMoment, checkTodayCapture, getTodayWindow, isWindowActive, supabase, DailyWindow } from '@/lib/supabase';
 
 import SplashScreen from '@/components/ONE/SplashScreen';
 import NotificationMoment from '@/components/ONE/NotificationMoment';
@@ -18,7 +18,7 @@ import LoginButton from '@/components/LoginButton';
 
 type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile';
 
-// ─── INTRO EKRANI ───────────────────────────────────────────────
+//  INTRO EKRANI 
 const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -104,7 +104,7 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
   </motion.div>
 );
 
-// ─── ANA UYGULAMA ────────────────────────────────────────────────
+//  ANA UYGULAMA 
 const ONEAppDemo = () => {
   const [activeTab, setActiveTab] = useState<TabType>('feed');
   const [showSplash, setShowSplash] = useState(true);
@@ -112,6 +112,8 @@ const ONEAppDemo = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [todayWindow, setTodayWindow] = useState<DailyWindow | null>(null);
+  const [windowActive, setWindowActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
@@ -155,13 +157,13 @@ const ONEAppDemo = () => {
     setHasCapturedToday(false);
   }, [user]);
 
-  // ── DEĞİŞİKLİK: Giriş yapılmışsa intro'yu atla ──
+  //  DEKLK: Giri yaplmsa intro'yu atla 
   const handleSplashComplete = () => {
     setShowSplash(false);
     if (!user) {
       setShowIntro(true);
     }
-    // user varsa showIntro false kalır, direkt feed açılır
+    // user varsa showIntro false kalr, direkt feed alr
   };
 
   // Intro'yu kapat
@@ -186,6 +188,9 @@ const ONEAppDemo = () => {
       if (!user) return;
       const captured = await checkTodayCapture();
       setHasCapturedToday(captured);
+      const win = await getTodayWindow();
+      setTodayWindow(win);
+      setWindowActive(isWindowActive(win));
 
       if (!captured) {
         const now = new Date();
@@ -216,6 +221,10 @@ const ONEAppDemo = () => {
         setUploadError("Sign in to capture your reality.");
         return;
       }
+      if (!windowActive && todayWindow !== null) {
+        setUploadError("The capture window is closed. Check back later.");
+        return;
+      }
       if (hasCapturedToday) {
         setUploadError("You already captured today's moment. See you tomorrow. 🌍");
         return;
@@ -232,7 +241,7 @@ const ONEAppDemo = () => {
   const isFeedTab = activeTab === 'feed';
   const isReady = !showSplash && !showIntro;
 
-  // ── DEĞİŞİKLİK: Feed ayrı, diğerleri ayrı render ──
+  //  DEKLK: Feed ayr, dierleri ayr render 
   const renderOtherTabContent = () => {
     switch (activeTab) {
       case 'map':
@@ -270,14 +279,14 @@ const ONEAppDemo = () => {
     >
       {isReady && (
         <>
-          {/* ── FEED TAB: TAM EKRAN, PADDING YOK ── */}
+          {/*  FEED TAB: TAM EKRAN, PADDING YOK  */}
           {isFeedTab && (
             <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
               <GlobalFeed />
             </div>
           )}
 
-          {/* ── DİĞER TAB'LAR: orijinal scroll layout ── */}
+          {/*  DER TAB'LAR: orijinal scroll layout  */}
           {!isFeedTab && (
             <div className="overflow-y-auto" style={{ height: '100dvh', paddingBottom: '80px' }}>
 
@@ -316,7 +325,7 @@ const ONEAppDemo = () => {
                 </div>
               </motion.div>
 
-              {/* Tab İçeriği */}
+              {/* Tab erii */}
               <div ref={contentRef} className="mt-2 px-5">
                 <AnimatePresence mode="wait">
                   {renderOtherTabContent()}
@@ -329,7 +338,7 @@ const ONEAppDemo = () => {
             </div>
           )}
 
-          {/* Bottom Navigation — her zaman görünür */}
+          {/* Bottom Navigation  her zaman grnr */}
           <div className="fixed bottom-0 left-0 right-0 z-50">
             <AppNavigation
               activeTab={activeTab}
@@ -338,7 +347,7 @@ const ONEAppDemo = () => {
             />
           </div>
 
-          {/* Bildirim — sadece gösterir, kamerayı otomatik açmaz */}
+          {/* Bildirim  sadece gsterir, kameray otomatik amaz */}
           <AnimatePresence>
             {showNotification && user && (
               <NotificationMoment
@@ -348,7 +357,7 @@ const ONEAppDemo = () => {
             )}
           </AnimatePresence>
 
-          {/* Hata Mesajı */}
+          {/* Hata Mesaj */}
           <AnimatePresence>
             {uploadError && (
               <motion.div
@@ -543,7 +552,7 @@ const ONEAppDemo = () => {
         {showSplash && <SplashScreen duration={2000} onComplete={handleSplashComplete} />}
       </AnimatePresence>
 
-      {/* Intro — sadece giriş yapılmamışsa */}
+      {/* Intro  sadece giri yaplmamsa */}
       <AnimatePresence>
         {showIntro && <IntroScreen onEnter={handleIntroEnter} />}
       </AnimatePresence>
