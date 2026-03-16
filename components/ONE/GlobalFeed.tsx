@@ -191,6 +191,11 @@ const GlobalFeed: React.FC = () => {
     }
   }, [filter, page, userCoords, fetchUserReactions, selectedCity, selectedCountry]);
 
+  // Seçili ülkenin şehirleri
+  const selectedCountryCities = selectedCountry
+    ? (countries.find(c => c.country === selectedCountry)?.cities || [])
+    : [];
+
   // Filtre, ülke veya şehir değişince yeniden çek
   useEffect(() => {
     fetchPosts(true);
@@ -323,9 +328,7 @@ const GlobalFeed: React.FC = () => {
                   className="flex gap-2 overflow-x-auto pb-1"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                  {countries
-                    .find(c => c.country === selectedCountry)
-                    ?.cities.map((city) => (
+                  {selectedCountryCities.map((city) => (
                       <motion.button
                         key={city.city}
                         whileTap={{ scale: 0.95 }}
@@ -347,7 +350,7 @@ const GlobalFeed: React.FC = () => {
                           {city.count}
                         </span>
                       </motion.button>
-                    ))}
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
