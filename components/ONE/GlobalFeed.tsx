@@ -38,7 +38,7 @@ const getFlag = (code: string | null) => {
     .join('');
 };
 
-const NAV_HEIGHT = 80; // AppNavigation yüksekliği (px)
+const NAV_HEIGHT = 80;
 
 const GlobalFeed: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -54,7 +54,6 @@ const GlobalFeed: React.FC = () => {
   const [cities, setCities] = useState<CityBlock[]>([]);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  // Header yüksekliğini dinamik ölç
   const headerRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -68,7 +67,6 @@ const GlobalFeed: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Her video kartının tam yüksekliği = ekran - header - nav
   const cardHeight = headerHeight > 0
     ? `calc(100dvh - ${headerHeight}px - ${NAV_HEIGHT}px)`
     : '60dvh';
@@ -224,27 +222,12 @@ const GlobalFeed: React.FC = () => {
   return (
     <div className="w-full flex flex-col bg-[var(--bg-void)]" style={{ height: '100dvh' }}>
 
-      {/* ─── SABİT HEADER ─── */}
+      {/* ─── SABİT HEADER — başlık ve sayaç kaldırıldı ─── */}
       <div
         ref={headerRef}
-        className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]"
+        className="flex-shrink-0 px-5 pt-3 pb-2 space-y-2 bg-[var(--bg-void)]"
         style={{ zIndex: 10 }}
       >
-        {/* Başlık */}
-        <div className="space-y-1">
-          <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
-          <div className="flex items-center gap-2">
-            <motion.div
-              className="w-2 h-2 rounded-full bg-green-500"
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <span className="font-jetbrains text-xs text-[var(--text-secondary)]">
-              {posts.length} moments loaded
-            </span>
-          </div>
-        </div>
-
         {/* ─── ŞEHİR BLOKLARI ─── */}
         {cities.length > 0 && (
           <div
@@ -351,7 +334,6 @@ const GlobalFeed: React.FC = () => {
           <p className="font-jetbrains text-xs text-[var(--text-ghost)] mt-1">Be the first to capture.</p>
         </div>
       ) : (
-        /* Scroll container — flex-1 ile sadece kalan alanı kaplar */
         <div
           className="flex-1 overflow-y-scroll"
           style={{
@@ -362,7 +344,6 @@ const GlobalFeed: React.FC = () => {
           }}
         >
           {posts.map((post) => (
-            /* Her kart: tam olarak cardHeight kadar — ne taşar ne eksik kalır */
             <div
               key={post.id}
               style={{
@@ -393,7 +374,6 @@ const GlobalFeed: React.FC = () => {
             </div>
           ))}
 
-          {/* Load more butonu — aynı snap yüksekliğinde */}
           {hasMore && (
             <div
               style={{
