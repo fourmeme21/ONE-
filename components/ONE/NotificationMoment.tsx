@@ -20,13 +20,13 @@ const NotificationMoment: React.FC<NotificationMomentProps> = ({
     setShouldShow(isActive);
   }, [isActive]);
 
-  // 10 saniye sonra otomatik kapanır
+  // 4 saniye sonra otomatik kapanır
   useEffect(() => {
     if (!shouldShow) return;
     const timer = setTimeout(() => {
       setShouldShow(false);
       onCapture?.();
-    }, 10000);
+    }, 4000);
     return () => clearTimeout(timer);
   }, [shouldShow, onCapture]);
 
