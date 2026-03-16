@@ -29,16 +29,9 @@ interface CityBlock {
   count: number;
 }
 
-interface CountryBlock {
-  country: string;
-  country_code: string | null;
-  count: number;
-  cities: CityBlock[];
-}
-
 const PAGE_SIZE = 10;
 
-// Ülke kodu → bayrak emoji
+// Country code to flag emoji
 const getFlag = (code: string | null) => {
   if (!code) return '🌍';
   return [...code.trim().toUpperCase()]
@@ -57,12 +50,11 @@ const GlobalFeed: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, EmojiType>>({});
 
-  // Ülke / şehir blokları
-  const [countries, setCountries] = useState<CountryBlock[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  // City blocks
+  const [cities, setCities] = useState<CityBlock[]>([]);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  // Kullanıcı bilgisi
+  // User info
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUserId(user?.id || null);
@@ -77,49 +69,38 @@ const GlobalFeed: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Ülke → şehir hiyerarşisini çek
+  // Fetch active cities
   useEffect(() => {
-    const fetchCountries = async () => {
+    const fetchCities = async () => {
       const { data, error } = await supabase
         .from('posts')
-        .select('city, country, country_code')
+        .select('city, country_code')
         .not('city', 'is', null)
         .order('captured_at', { ascending: false })
-        .limit(500);
+        .limit(200);
 
       if (error || !data) return;
 
-      const countryMap: Record<string, { country_code: string | null; count: number; cities: Record<string, number> }> = {};
-
+      // Count by city
+      const map: Record<string, { country_code: string | null; count: number }> = {};
       data.forEach((p: any) => {
-        const countryKey = p.country || p.country_code || 'Unknown';
-        if (!countryMap[countryKey]) {
-          countryMap[countryKey] = { country_code: p.country_code, count: 0, cities: {} };
-        }
-        countryMap[countryKey].count++;
-        if (p.city) {
-          countryMap[countryKey].cities[p.city] = (countryMap[countryKey].cities[p.city] || 0) + 1;
-        }
+        if (!p.city) return;
+        if (!map[p.city]) map[p.city] = { country_code: p.country_code, count: 0 };
+        map[p.city].count++;
       });
 
-      const sorted: CountryBlock[] = Object.entries(countryMap)
-        .map(([country, val]) => ({
-          country,
-          country_code: val.country_code,
-          count: val.count,
-          cities: Object.entries(val.cities)
-            .map(([city, count]) => ({ city, country_code: val.country_code, count }))
-            .sort((a, b) => b.count - a.count),
-        }))
-        .sort((a, b) => b.count - a.count);
+      const sorted = Object.entries(map)
+        .map(([city, val]) => ({ city, ...val }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15);
 
-      setCountries(sorted);
+      setCities(sorted);
     };
 
-    fetchCountries();
+    fetchCities();
   }, []);
 
-  // Kullanıcının reaksiyonlarını çek
+  // Fetch user reactions
   const fetchUserReactions = useCallback(async (postIds: string[]) => {
     if (!currentUserId || postIds.length === 0) return;
     const { data } = await supabase
@@ -134,7 +115,7 @@ const GlobalFeed: React.FC = () => {
     }
   }, [currentUserId]);
 
-  // Postları çek
+  // Fetch posts
   const fetchPosts = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
     if (reset) { setLoading(true); setPosts([]); setPage(0); setHasMore(true); }
@@ -146,11 +127,9 @@ const GlobalFeed: React.FC = () => {
         .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
         .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
-      // Ülke / şehir filtresi
+      // City filter
       if (selectedCity) {
         query = query.eq('city', selectedCity);
-      } else if (selectedCountry) {
-        query = query.eq('country', selectedCountry);
       }
 
       if (filter === 'top') {
@@ -189,25 +168,14 @@ const GlobalFeed: React.FC = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filter, page, userCoords, fetchUserReactions, selectedCity, selectedCountry]);
+  }, [filter, page, userCoords, fetchUserReactions, selectedCity]);
 
-  // Seçili ülkenin şehirleri
-  const selectedCountryCities = selectedCountry
-    ? (countries.find(c => c.country === selectedCountry)?.cities || [])
-    : [];
-
-  // Filtre, ülke veya şehir değişince yeniden çek
+  // Refetch on filter or city change
   useEffect(() => {
     fetchPosts(true);
-  }, [filter, selectedCity, selectedCountry]);
+  }, [filter, selectedCity]);
 
-  // Ülke seçilince şehir seçimini sıfırla
-  const handleCountrySelect = (country: string | null) => {
-    setSelectedCountry(country);
-    setSelectedCity(null);
-  };
-
-  // Reaksiyon ekle/kaldır
+  // Add/remove reaction
   const handleReact = async (postId: string, emoji: EmojiType) => {
     if (!currentUserId) return;
     const existing = userReactions[postId];
@@ -247,10 +215,10 @@ const GlobalFeed: React.FC = () => {
       className="w-full flex flex-col"
       style={{ height: '100dvh' }}
     >
-      {/* STICKY HEADER */}
+      {/* ─── STICKY HEADER ─── */}
       <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
 
-        {/* Baslik */}
+        {/* Header */}
         <div className="space-y-1">
           <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
           <div className="flex items-center gap-2">
@@ -265,95 +233,55 @@ const GlobalFeed: React.FC = () => {
           </div>
         </div>
 
-        {/* ULKE BLOKLARI */}
-        {countries.length > 0 && (
-          <div className="space-y-2">
-            {/* Ulke satiri */}
-            <div
-              className="flex gap-2 overflow-x-auto pb-1"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        {/* CITY BLOCKS */}
+        {cities.length > 0 && (
+          <div
+            className="flex gap-2 overflow-x-auto pb-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelectedCity(null)}
+              className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+              style={{
+                background: selectedCity === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                borderColor: selectedCity === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                minWidth: '56px',
+              }}
             >
+              <span className="text-lg">🌍</span>
+              <span
+                className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
+                style={{ color: selectedCity === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
+              >
+                All
+              </span>
+            </motion.button>
+
+            {cities.map((c) => (
               <motion.button
+                key={c.city}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => handleCountrySelect(null)}
+                onClick={() => setSelectedCity(selectedCity === c.city ? null : c.city)}
                 className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
                 style={{
-                  background: selectedCountry === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                  borderColor: selectedCountry === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                  minWidth: '56px',
+                  background: selectedCity === c.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                  borderColor: selectedCity === c.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                  minWidth: '64px',
                 }}
               >
-                <span className="text-lg">🌍</span>
+                <span className="text-lg">{getFlag(c.country_code)}</span>
                 <span
-                  className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
-                  style={{ color: selectedCountry === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
+                  className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
+                  style={{ color: selectedCity === c.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
                 >
-                  All
+                  {c.city.length > 8 ? c.city.slice(0, 7) + '…' : c.city}
+                </span>
+                <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  {c.count}
                 </span>
               </motion.button>
-
-              {countries.map((c) => (
-                <motion.button
-                  key={c.country}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCountrySelect(selectedCountry === c.country ? null : c.country)}
-                  className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
-                  style={{
-                    background: selectedCountry === c.country ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                    borderColor: selectedCountry === c.country ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                    minWidth: '64px',
-                  }}
-                >
-                  <span className="text-lg">{getFlag(c.country_code)}</span>
-                  <span
-                    className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
-                    style={{ color: selectedCountry === c.country ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
-                  >
-                    {c.country.length > 8 ? c.country.slice(0, 7) + '…' : c.country}
-                  </span>
-                  <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    {c.count}
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-
-            {/* Sehir satiri - sadece ulke seciliyse */}
-            <AnimatePresence>
-              {selectedCountry && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex gap-2 overflow-x-auto pb-1"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  {selectedCountryCities.map((city) => (
-                      <motion.button
-                        key={city.city}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedCity(selectedCity === city.city ? null : city.city)}
-                        className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
-                        style={{
-                          background: selectedCity === city.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                          borderColor: selectedCity === city.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                          minWidth: '64px',
-                        }}
-                      >
-                        <span
-                          className="font-jetbrains text-[9px] uppercase tracking-wider text-center leading-tight"
-                          style={{ color: selectedCity === city.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
-                        >
-                          {city.city.length > 8 ? city.city.slice(0, 7) + '…' : city.city}
-                        </span>
-                        <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                          {city.count}
-                        </span>
-                      </motion.button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            ))}
           </div>
         )}
 
@@ -374,9 +302,9 @@ const GlobalFeed: React.FC = () => {
           ))}
         </div>
 
-        {/* Secili filtre etiketi */}
+        {/* Selected city label */}
         <AnimatePresence>
-          {(selectedCountry || selectedCity) && (
+          {selectedCity && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -384,10 +312,10 @@ const GlobalFeed: React.FC = () => {
               className="flex items-center gap-2"
             >
               <span className="font-jetbrains text-[10px] text-[var(--accent-electric)] uppercase tracking-widest">
-                {selectedCity ? `Showing: ${selectedCity}` : `Showing: ${selectedCountry}`}
+                Showing: {selectedCity}
               </span>
               <button
-                onClick={() => { setSelectedCity(null); setSelectedCountry(null); }}
+                onClick={() => setSelectedCity(null)}
                 className="text-[10px] text-white/30 font-jetbrains"
               >
                 ✕ clear
@@ -397,7 +325,7 @@ const GlobalFeed: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* VIDEO ALANI */}
+      {/* VIDEO AREA */}
       {loading ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
@@ -417,7 +345,7 @@ const GlobalFeed: React.FC = () => {
             scrollSnapType: 'y mandatory',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            paddingBottom: '80px', // navigation bar yüksekliği
+            paddingBottom: '80px', // navigation bar height
           }}
         >
             {posts.map((post) => (
