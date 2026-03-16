@@ -248,113 +248,111 @@ const GlobalFeed: React.FC = () => {
       {/* STICKY HEADER */}
       <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
 
-        {/* Header */}
-        <div className="space-y-1">
-          <h1 className="font-bebas text-4xl text-white">Right now, across earth</h1>
-          <div className="flex items-center gap-2">
-            <motion.div
-              className="w-2 h-2 rounded-full bg-green-500"
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <span className="font-jetbrains text-xs text-[var(--text-secondary)]">
-              {posts.length} moments loaded
-            </span>
-          </div>
-        </div>
-
-        {/* COUNTRY BLOCKS */}
+        {/* COUNTRY / CITY BLOCKS - single row, switches on country select */}
         {countries.length > 0 && (
-          <div className="space-y-2">
-
-            {/* Country row */}
-            <div
-              className="flex gap-2 overflow-x-auto pb-1"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleCountrySelect(null)}
-                className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
-                style={{
-                  background: selectedCountry === null ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                  borderColor: selectedCountry === null ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                  minWidth: '56px',
-                }}
+          <AnimatePresence mode="wait">
+            {!selectedCountry ? (
+              <motion.div
+                key="countries"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex gap-2 overflow-x-auto pb-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                <span className="text-lg">🌍</span>
-                <span
-                  className="font-jetbrains text-[9px] uppercase tracking-wider mt-1"
-                  style={{ color: selectedCountry === null ? '#00D9FF' : 'rgba(255,255,255,0.4)' }}
-                >
-                  All
-                </span>
-              </motion.button>
-
-              {countries.map((c) => (
                 <motion.button
-                  key={c.country}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCountrySelect(selectedCountry === c.country ? null : c.country)}
+                  onClick={() => handleCountrySelect(null)}
                   className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
                   style={{
-                    background: selectedCountry === c.country ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                    borderColor: selectedCountry === c.country ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                    minWidth: '64px',
+                    background: 'rgba(0,217,255,0.12)',
+                    borderColor: 'rgba(0,217,255,0.5)',
+                    minWidth: '56px',
                   }}
                 >
-                  <span className="text-lg">{getFlag(c.country_code)}</span>
-                  <span
-                    className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
-                    style={{ color: selectedCountry === c.country ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
-                  >
-                    {c.country.length > 8 ? c.country.slice(0, 7) + '...' : c.country}
-                  </span>
-                  <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    {c.count}
+                  <span className="text-lg">🌍</span>
+                  <span className="font-jetbrains text-[9px] uppercase tracking-wider mt-1" style={{ color: '#00D9FF' }}>
+                    All
                   </span>
                 </motion.button>
-              ))}
-            </div>
 
-            {/* City row - visible only when a country is selected */}
-            <AnimatePresence>
-              {selectedCountry && selectedCountryCities.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex gap-2 overflow-x-auto pb-1"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  {selectedCountryCities.map((city) => (
-                    <motion.button
-                      key={city.city}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedCity(selectedCity === city.city ? null : city.city)}
-                      className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
-                      style={{
-                        background: selectedCity === city.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
-                        borderColor: selectedCity === city.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
-                        minWidth: '64px',
-                      }}
+                {countries.map((c) => (
+                  <motion.button
+                    key={c.country}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleCountrySelect(c.country)}
+                    className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      borderColor: 'rgba(255,255,255,0.08)',
+                      minWidth: '64px',
+                    }}
+                  >
+                    <span className="text-lg">{getFlag(c.country_code)}</span>
+                    <span
+                      className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
+                      style={{ color: 'rgba(255,255,255,0.6)' }}
                     >
-                      <span
-                        className="font-jetbrains text-[9px] uppercase tracking-wider text-center leading-tight"
-                        style={{ color: selectedCity === city.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
-                      >
-                        {city.city.length > 8 ? city.city.slice(0, 7) + '...' : city.city}
-                      </span>
-                      <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                        {city.count}
-                      </span>
-                    </motion.button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      {c.country.length > 8 ? c.country.slice(0, 7) + '...' : c.country}
+                    </span>
+                    <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      {c.count}
+                    </span>
+                  </motion.button>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="cities"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex gap-2 overflow-x-auto pb-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {/* Back button */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCountrySelect(null)}
+                  className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                  style={{
+                    background: 'rgba(0,217,255,0.08)',
+                    borderColor: 'rgba(0,217,255,0.3)',
+                    minWidth: '48px',
+                  }}
+                >
+                  <span className="text-lg">{getFlag(countries.find(c => c.country === selectedCountry)?.country_code || null)}</span>
+                  <span className="font-jetbrains text-[9px] uppercase tracking-wider mt-1" style={{ color: '#00D9FF' }}>
+                    back
+                  </span>
+                </motion.button>
 
-          </div>
+                {selectedCountryCities.map((city) => (
+                  <motion.button
+                    key={city.city}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedCity(selectedCity === city.city ? null : city.city)}
+                    className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                    style={{
+                      background: selectedCity === city.city ? 'rgba(0,217,255,0.12)' : 'rgba(255,255,255,0.04)',
+                      borderColor: selectedCity === city.city ? 'rgba(0,217,255,0.5)' : 'rgba(255,255,255,0.08)',
+                      minWidth: '64px',
+                    }}
+                  >
+                    <span
+                      className="font-jetbrains text-[9px] uppercase tracking-wider text-center leading-tight"
+                      style={{ color: selectedCity === city.city ? '#00D9FF' : 'rgba(255,255,255,0.6)' }}
+                    >
+                      {city.city.length > 8 ? city.city.slice(0, 7) + '...' : city.city}
+                    </span>
+                    <span className="font-jetbrains text-[8px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      {city.count}
+                    </span>
+                  </motion.button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         )}
 
         {/* Filters */}
