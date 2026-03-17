@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
+import { supabase, getTodayWindow, DailyWindow } from '@/lib/supabase';
 import { EmojiType } from '@/lib/types';
 import VideoCard from './VideoCard';
 
@@ -56,6 +56,38 @@ const GlobalFeed: React.FC = () => {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, EmojiType>>({});
+
+  const [activeWindow, setActiveWindow] = useState<DailyWindow | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+
+    const startTimer = (windowEnd: string) => {
+      const tick = () => {
+        const diff = new Date(windowEnd).getTime() - Date.now();
+        if (diff <= 0) { setTimeLeft('00:00:00'); return; }
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(
+          `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+        );
+      };
+      tick();
+      timer = setInterval(tick, 1000);
+    };
+
+    const fetchWindow = async () => {
+      const win = await getTodayWindow();
+      setActiveWindow(win);
+      if (win?.window_end) startTimer(win.window_end);
+      else setTimeLeft('--:--:--');
+    };
+
+    fetchWindow();
+    return () => clearInterval(timer);
+  }, []);
 
   // Country / city blocks
   const [countries, setCountries] = useState<CountryBlock[]>([]);
@@ -355,21 +387,56 @@ const GlobalFeed: React.FC = () => {
           </AnimatePresence>
         )}
 
-        {/* Filters */}
-        <div className="flex gap-2">
-          {filters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`px-4 py-2 rounded-full font-jetbrains text-xs tracking-wider uppercase transition-all ${
-                filter === f.id
-                  ? 'bg-[var(--accent-electric)] text-[var(--bg-void)] font-bold'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        {/* Filters + Wave Badge */}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2">
+            {filters.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`px-4 py-2 rounded-full font-jetbrains text-xs tracking-wider uppercase transition-all ${
+                  filter === f.id
+                    ? 'bg-[var(--accent-electric)] text-[var(--bg-void)] font-bold'
+                    : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Wave (Pencere) Bilgisi */}
+          {(() => {
+            const block = activeWindow?.block;
+            const theme = block === 'sabah'
+              ? { dot: '#FFB347', glow: '#FFB347', border: 'rgba(255,179,71,0.5)', borderPulse: 'rgba(255,179,71,0.15)', text: '#FFB347' }
+              : block === 'ogle'
+              ? { dot: '#00D9FF', glow: '#00D9FF', border: 'rgba(0,217,255,0.5)', borderPulse: 'rgba(0,217,255,0.15)', text: '#00D9FF' }
+              : block === 'aksam'
+              ? { dot: '#C084FC', glow: '#C084FC', border: 'rgba(192,132,252,0.5)', borderPulse: 'rgba(192,132,252,0.15)', text: '#C084FC' }
+              : { dot: '#00D9FF', glow: '#00D9FF', border: 'rgba(0,217,255,0.3)', borderPulse: 'rgba(0,217,255,0.1)', text: '#00D9FF' };
+            return (
+              <motion.div
+                animate={{ borderColor: [theme.border, theme.borderPulse, theme.border] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="flex items-center gap-2 bg-black/40 backdrop-blur-xl rounded-full px-3 py-1.5"
+                style={{ border: `1px solid ${theme.border}` }}
+              >
+                <motion.div
+                  animate={{ opacity: [0.4, 1, 0.4], scale: [0.85, 1.2, 0.85] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  style={{ width: 6, height: 6, borderRadius: '50%', background: theme.dot, boxShadow: `0 0 8px ${theme.glow}, 0 0 16px ${theme.glow}` }}
+                />
+                <span className="text-[10px] font-jetbrains font-medium uppercase tracking-tighter" style={{ color: theme.text }}>
+                  {block ? `${block} wave` : 'Live Wave'}
+                </span>
+                <div className="w-[1px] h-3 bg-white/10" />
+                <span className="text-[10px] font-jetbrains font-bold tabular-nums" style={{ color: theme.text }}>
+                  {timeLeft || '00:00'}
+                </span>
+              </motion.div>
+            );
+          })()}
         </div>
 
         {/* Active filter label */}
