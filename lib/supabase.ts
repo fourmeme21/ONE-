@@ -192,3 +192,38 @@ export const isWindowActive = (window: DailyWindow | null): boolean => {
   const end = new Date(window.window_end);
   return now >= start && now <= end;
 }
+
+/**
+ * Get today window from daily_windows table.
+ */
+export interface DailyWindow {
+  id: string;
+  date: string;
+  block: 'sabah' | 'ogle' | 'aksam';
+  window_start: string;
+  window_end: string;
+  is_global: boolean;
+}
+
+export const getTodayWindow = async (): Promise<DailyWindow | null> => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('daily_windows')
+      .select('*')
+      .eq('date', today)
+      .single();
+    if (error || !data) return null;
+    return data as DailyWindow;
+  } catch {
+    return null;
+  }
+}
+
+export const isWindowActive = (win: DailyWindow | null): boolean => {
+  if (!win) return false;
+  const now = new Date();
+  const start = new Date(win.window_start);
+  const end = new Date(win.window_end);
+  return now >= start && now <= end;
+}
