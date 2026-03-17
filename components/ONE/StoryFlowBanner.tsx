@@ -1,18 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { getTodayWindow, isWindowActive, DailyWindow } from '@/lib/supabase';
-
-const stories = [
-  { title: 'Instagram with X', subtitle: 'Filtered reality ends here', icon: '❌', gradient: 'linear-gradient(135deg, #D97706, #B45309)' },
-  { title: '3 Seconds', subtitle: 'No second chances.', icon: '⏱️', gradient: 'linear-gradient(135deg, #0EA5E9, #2563EB)' },
-  { title: '47 Countries', subtitle: 'Right now.', icon: '🌍', gradient: 'linear-gradient(135deg, #7C3AED, #6D28D9)' },
-  { title: 'Real Humans', subtitle: 'Real moments.', icon: '❤️', gradient: 'linear-gradient(135deg, #EC4899, #BE185D)' },
-];
+import { getTodayWindow, isWindowActive, DailyWindow, supabase } from '@/lib/supabase';
 
 const blockTheme = {
   sabah: { color: '#FFB347', label: 'Sabah Wave', icon: '🌅' },
-  ogle:  { color: '#00D9FF', label: 'Öğle Wave',  icon: '☀️'  },
+  ogle:  { color: '#00D9FF', label: 'Öğle Wave',  icon: '☀️' },
   aksam: { color: '#C084FC', label: 'Akşam Wave', icon: '🌆' },
 };
 
@@ -20,12 +13,13 @@ const StoryFlowBanner: React.FC = () => {
   const [window_, setWindow_] = useState<DailyWindow | null>(null);
   const [active, setActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
+  const [stats, setStats] = useState({ countries: 0, cities: 0, moments: 0 });
 
   useEffect(() => {
+    // Pencere
     getTodayWindow().then((win) => {
       setWindow_(win);
       setActive(isWindowActive(win));
-
       if (win?.window_end) {
         const tick = () => {
           const diff = new Date(win.window_end).getTime() - Date.now();
@@ -40,14 +34,24 @@ const StoryFlowBanner: React.FC = () => {
         return () => clearInterval(t);
       }
     });
+
+    // Gerçek istatistikler
+    const fetchStats = async () => {
+      const { count: moments } = await supabase.from('posts').select('*', { count: 'exact', head: true });
+      const { data: geoData } = await supabase.from('posts').select('country, city').not('country', 'is', null);
+      const countries = new Set(geoData?.map((p: any) => p.country)).size;
+      const cities = new Set(geoData?.map((p: any) => p.city).filter(Boolean)).size;
+      setStats({ countries, cities, moments: moments || 0 });
+    };
+    fetchStats();
   }, []);
 
   const theme = window_?.block ? blockTheme[window_.block] : null;
 
   return (
-    <div className="w-full space-y-5">
+    <div className="w-full space-y-4">
 
-      {/* Pencere Bilgisi — her zaman göster */}
+      {/* Pencere Kartı */}
       {window_ && theme ? (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -72,13 +76,12 @@ const StoryFlowBanner: React.FC = () => {
           <div className="flex flex-col items-end gap-1">
             {active && (
               <motion.div
-                animate={{ opacity: [0.5, 1, 0.5] }}
+                animate={{ opacity: [0.5, 1, 0.5], scale: [0.9, 1.1, 0.9] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="w-2 h-2 rounded-full"
-                style={{ background: theme.color, boxShadow: `0 0 8px ${theme.color}` }}
+                style={{ width: 6, height: 6, borderRadius: '50%', background: theme.color, boxShadow: `0 0 8px ${theme.color}` }}
               />
             )}
-            <span className="font-jetbrains text-xs font-bold tabular-nums" style={{ color: theme.color }}>
+            <span className="font-jetbrains text-xs font-bold tabular-nums" style={{ color: active ? theme.color : 'rgba(255,255,255,0.2)' }}>
               {timeLeft || '--:--:--'}
             </span>
           </div>
@@ -92,49 +95,18 @@ const StoryFlowBanner: React.FC = () => {
         >
           <span className="text-2xl" style={{ filter: 'grayscale(1) opacity(0.4)' }}>🌊</span>
           <div>
-            <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              Wave Bekleniyor
-            </p>
-            <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              Bugün henüz pencere oluşturulmadı
-            </p>
+            <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>Wave Bekleniyor</p>
+            <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Bugün henüz pencere oluşturulmadı</p>
           </div>
         </motion.div>
       )}
 
-      <h2 className="font-bebas text-3xl text-white" style={{ letterSpacing: '0.05em' }}>
-        The ONE Story
-      </h2>
-
-      <div className="flex gap-3 overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {stories.map((story, index) => (
-          <React.Fragment key={index}>
-            <motion.div
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex-shrink-0 rounded-2xl flex flex-col items-center justify-center text-center p-4 relative overflow-hidden"
-              style={{ width: '140px', height: '180px', background: story.gradient }}
-            >
-              <div className="absolute inset-0 bg-black/20" />
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <span style={{ fontSize: '32px' }}>{story.icon}</span>
-                <p className="font-bebas text-white text-lg leading-tight">{story.title}</p>
-                <p className="font-jetbrains text-white/70 text-[10px] leading-snug">{story.subtitle}</p>
-              </div>
-            </motion.div>
-            {index < stories.length - 1 && (
-              <div className="flex-shrink-0 flex items-center text-[var(--text-ghost)] text-lg self-center">→</div>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
+      {/* Gerçek İstatistikler */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Countries', value: '47' },
-          { label: 'Cities', value: '891' },
-          { label: 'Moments', value: '2,847' },
-          { label: 'Active Today', value: 'Live' },
+          { label: 'Countries', value: stats.countries || '—' },
+          { label: 'Cities', value: stats.cities || '—' },
+          { label: 'Moments', value: stats.moments || '—' },
         ].map((stat, i) => (
           <div key={i} className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-center">
             <div className="font-bebas text-2xl text-[var(--accent-electric)]">{stat.value}</div>
