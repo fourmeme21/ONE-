@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { getTodayWindow, isWindowActive } from '@/lib/supabase';
 
 interface AppNavigationProps {
   activeTab?: 'feed' | 'map' | 'capture' | 'archive' | 'profile';
@@ -21,6 +22,13 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
   const didFire = useRef<boolean>(false);
+  const [windowOpen, setWindowOpen] = useState(false);
+
+  useEffect(() => {
+    getTodayWindow().then((win) => {
+      setWindowOpen(isWindowActive(win));
+    });
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -28,29 +36,17 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     didFire.current = false;
   };
 
-  const handleTouchEnd = (
-    e: React.TouchEvent,
-    tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile'
-  ) => {
+  const handleTouchEnd = (e: React.TouchEvent, tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile') => {
     const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
-
     if (deltaY > 15 || deltaX > 15) return;
-
-    // e.preventDefault() KALDIRILDI — Android'de butonu kilitleyor
     e.stopPropagation();
     didFire.current = true;
     onTabChange?.(tabId);
   };
 
-  const handleClick = (
-    e: React.MouseEvent,
-    tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile'
-  ) => {
-    if (didFire.current) {
-      didFire.current = false;
-      return;
-    }
+  const handleClick = (e: React.MouseEvent, tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile') => {
+    if (didFire.current) { didFire.current = false; return; }
     e.stopPropagation();
     onTabChange?.(tabId);
   };
@@ -70,16 +66,57 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
               className="relative flex flex-col items-center justify-center gap-1"
               whileTap={{ scale: 0.95 }}
             >
-              <div className={`flex items-center justify-center ${isCapture ? 'w-14 h-14 rounded-full border-2 border-[var(--accent-electric)]' : 'w-8 h-8'}`}>
-                <span className={`text-xl ${isActive ? 'text-[var(--accent-electric)]' : 'text-[var(--text-ghost)]'}`}>{tab.icon}</span>
-              </div>
+              {isCapture ? (
+                // Capture butonu — pencere açıksa pulse
+                <div className="relative flex items-center justify-center w-14 h-14">
+                  {windowOpen && (
+                    <>
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{ border: '2px solid #00D9FF' }}
+                        animate={{ scale: [1, 1.25, 1], opacity: [0.8, 0, 0.8] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{ border: '2px solid #00D9FF' }}
+                        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                      />
+                    </>
+                  )}
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center"
+                    style={{
+                      border: `2px solid ${windowOpen ? '#00D9FF' : 'var(--accent-electric)'}`,
+                      background: windowOpen ? 'rgba(0,217,255,0.1)' : 'transparent',
+                    }}
+                  >
+                    <span className="text-xl" style={{ color: windowOpen ? '#00D9FF' : 'var(--text-ghost)' }}>
+                      {tab.icon}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-8 h-8">
+                  <span className={`text-xl ${isActive ? 'text-[var(--accent-electric)]' : 'text-[var(--text-ghost)]'}`}>
+                    {tab.icon}
+                  </span>
+                </div>
+              )}
+
               {!isCapture && (
                 <span className={`font-jetbrains text-xs tracking-wider uppercase ${isActive ? 'text-[var(--accent-electric)]' : 'text-[var(--text-ghost)]'}`}>
                   {tab.label}
                 </span>
               )}
+
               {tab.id === 'feed' && hasNewMoments && (
-                <motion.div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+                <motion.div
+                  className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
               )}
             </motion.button>
           );
