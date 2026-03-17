@@ -401,7 +401,7 @@ const ONEAppDemo = () => {
                 </button>
 
                 <CameraCapture
-                  onCaptureComplete={async ({ blob, location, timestamp }) => {
+                  onCaptureComplete={async ({ blob, location, timestamp, durationSec }) => {
                     setCameraOpen(false);
                     setActiveTab('feed');
                     setLastCapturedVideo(null);
@@ -414,7 +414,7 @@ const ONEAppDemo = () => {
                       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
                       const file = new File([blob], `one_${Date.now()}.${ext}`, { type: blob.type });
                       const secureDate = timestamp instanceof Date ? timestamp : new Date();
-                      const publicUrl = await uploadMoment(file, location, secureDate.toISOString());
+                      const publicUrl = await uploadMoment(file, location, secureDate.toISOString(), durationSec);
                       setLastCapturedVideo(publicUrl);
                       setHasCapturedToday(true);
                       setUploadSuccess(true);
