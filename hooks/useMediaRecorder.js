@@ -3,12 +3,15 @@ import { useRef, useState, useCallback } from "react";
 export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode = "environment" }) {
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0); // 0-30 arası saniye
+  const [canStop, setCanStop] = useState(false); // ilk 3sn false
 
   const streamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+  const maxTimerRef = useRef(null);
 
-  // Önizlemeyi durdur (Temizlik için her yerde kullanılır)
   const stopPreview = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -16,19 +19,16 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
     }
   }, []);
 
-  // Kamera önizlemesini başlat (V3.1: facingMode duyarlı)
   const startPreview = useCallback(async () => {
-    // Yeni bir stream başlatmadan önce eskisini durdur (Kamera geçişi için kritik)
     stopPreview();
-    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: {
           facingMode: facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
-        audio: true, // V3.1: Ambient Sound (Ortam Sesi)
+        audio: true,
       });
       streamRef.current = stream;
       if (onStreamReady) onStreamReady(stream);
@@ -37,13 +37,20 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
     }
   }, [onStreamReady, facingMode, stopPreview]);
 
+  const stopRecording = useCallback(() => {
+    clearInterval(timerRef.current);
+    clearTimeout(maxTimerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
   const startCapture = useCallback(async () => {
     if (isRecording || !streamRef.current) return;
 
-    // V3.1: Manipüle edilemez zaman (UTC)
     const timestamp = new Date().toUTCString();
     let location = null;
-    
+
     try {
       location = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
@@ -56,8 +63,6 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
       location = null;
     }
 
-    // Android Chrome video/mp4 MediaRecorder'ı desteklemez — webm kullan
-    // Öncelik sırası: webm/vp9 → webm/vp8 → webm → mp4
     const mimeType = [
       "video/webm;codecs=vp9,opus",
       "video/webm;codecs=vp8,opus",
@@ -68,7 +73,7 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
     chunksRef.current = [];
     const recorder = new MediaRecorder(streamRef.current, {
       mimeType,
-      videoBitsPerSecond: 2_500_000, // 2.5 Mbps — yeterli kalite
+      videoBitsPerSecond: 2_500_000,
     });
     mediaRecorderRef.current = recorder;
 
@@ -78,30 +83,59 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
-      console.log(`[ONE] Kayıt tamamlandı — format: ${mimeType}, boyut: ${(blob.size / 1024).toFixed(1)} KB`);
+      const duration = recordingTime;
+      console.log(`[ONE] Kayıt tamamlandı — format: ${mimeType}, boyut: ${(blob.size / 1024).toFixed(1)} KB, süre: ${duration}sn`);
       setIsRecording(false);
       setCountdown(null);
+      setRecordingTime(0);
+      setCanStop(false);
       if (onCaptureComplete) onCaptureComplete({ blob, location, timestamp });
     };
 
-    // timeslice=250ms — her 250ms'de ondataavailable tetiklenir, veri kaybolmaz
     recorder.start(250);
     setIsRecording(true);
+    setRecordingTime(0);
+    setCanStop(false);
 
-    // 3 Saniye Kuralı (Countdown)
+    // 3-2-1 countdown
     let count = 3;
     setCountdown(count);
-    const interval = setInterval(() => {
+    const countInterval = setInterval(() => {
       count -= 1;
       if (count > 0) {
         setCountdown(count);
       } else {
-        clearInterval(interval);
+        clearInterval(countInterval);
         setCountdown(null);
-        recorder.stop(); // 3 saniye dolunca otomatik durdur
+        setCanStop(true); // min 3sn doldu, stop aktif
       }
     }, 1000);
+
+    // Canlı süre sayacı (her saniye)
+    let elapsed = 0;
+    timerRef.current = setInterval(() => {
+      elapsed += 1;
+      setRecordingTime(elapsed);
+    }, 1000);
+
+    // Max 30sn otomatik dur
+    maxTimerRef.current = setTimeout(() => {
+      clearInterval(timerRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    }, 30000);
+
   }, [isRecording, onCaptureComplete]);
 
-  return { isRecording, countdown, startPreview, stopPreview, startCapture };
+  return {
+    isRecording,
+    countdown,
+    recordingTime,
+    canStop,
+    startPreview,
+    stopPreview,
+    startCapture,
+    stopRecording,
+  };
 }
