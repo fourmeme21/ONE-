@@ -47,25 +47,25 @@ const StoryFlowBanner: React.FC = () => {
   return (
     <div className="w-full space-y-5">
 
-      {/* Pencere Bilgisi — aktifse göster */}
-      {window_ && theme && (
+      {/* Pencere Bilgisi — her zaman göster */}
+      {window_ && theme ? (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl p-4 flex items-center justify-between"
           style={{
-            background: `linear-gradient(135deg, ${theme.color}22, ${theme.color}11)`,
-            border: `1px solid ${theme.color}44`,
+            background: active ? `linear-gradient(135deg, ${theme.color}22, ${theme.color}11)` : 'rgba(255,255,255,0.03)',
+            border: active ? `1px solid ${theme.color}44` : '1px solid rgba(255,255,255,0.08)',
           }}
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{theme.icon}</span>
+            <span className="text-2xl" style={{ filter: active ? 'none' : 'grayscale(1) opacity(0.4)' }}>{theme.icon}</span>
             <div>
-              <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: theme.color }}>
+              <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: active ? theme.color : 'rgba(255,255,255,0.3)' }}>
                 {theme.label}
               </p>
-              <p className="font-jetbrains text-[10px] text-white/50 mt-0.5">
-                {active ? 'Pencere açık — şimdi çek!' : 'Pencere kapalı'}
+              <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: active ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)' }}>
+                {active ? 'Pencere açık — şimdi çek!' : 'Pencere kapandı — yarın yeni wave'}
               </p>
             </div>
           </div>
@@ -81,6 +81,23 @@ const StoryFlowBanner: React.FC = () => {
             <span className="font-jetbrains text-xs font-bold tabular-nums" style={{ color: theme.color }}>
               {timeLeft || '--:--:--'}
             </span>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl p-4 flex items-center gap-3"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <span className="text-2xl" style={{ filter: 'grayscale(1) opacity(0.4)' }}>🌊</span>
+          <div>
+            <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              Wave Bekleniyor
+            </p>
+            <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              Bugün henüz pencere oluşturulmadı
+            </p>
           </div>
         </motion.div>
       )}
