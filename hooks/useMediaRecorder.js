@@ -63,12 +63,11 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
       location = null;
     }
 
-    const mimeType = [
-      "video/webm;codecs=vp9,opus",
-      "video/webm;codecs=vp8,opus",
-      "video/webm",
-      "video/mp4",
-    ].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
+    // iOS Safari webm desteklemiyor — mp4/h264 kullan
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const mimeType = isIOS
+      ? (["video/mp4;codecs=avc1", "video/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) || "video/mp4")
+      : (["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm");
 
     chunksRef.current = [];
     const recorder = new MediaRecorder(streamRef.current, {
