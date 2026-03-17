@@ -46,6 +46,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
   const counts: Record<EmojiType, number> = {
     '❤️': reactionHeart,
@@ -63,6 +64,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
+      // İlk play'de sesi aç
+      setIsMuted(false);
+      videoRef.current.muted = false;
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
@@ -76,12 +80,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Video */}
+      {/* Video — başlangıçta muted (autoplay policy), tıklanınca ses açılır */}
       <video
         ref={videoRef}
         src={fileUrl}
         playsInline
-        muted
+        muted={isMuted}
         preload="metadata"
         onClick={handleTap}
         onEnded={() => { setIsPlaying(false); }}
@@ -101,7 +105,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 55%, rgba(0,0,0,0.85) 100%)' }}
       />
 
-      {/* Play butonu — sadece duraklatılmışsa */}
+      {/* Play butonu */}
       {!isPlaying && (
         <div
           className="absolute inset-0 flex items-center justify-center"
@@ -123,6 +127,24 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </div>
       )}
 
+      {/* Ses göstergesi — sağ üst */}
+      {isPlaying && (
+        <button
+          className="absolute top-2 right-8 z-10 p-1.5 rounded-full"
+          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (videoRef.current) {
+              const newMuted = !isMuted;
+              videoRef.current.muted = newMuted;
+              setIsMuted(newMuted);
+            }
+          }}
+        >
+          <span className="text-sm">{isMuted ? '🔇' : '🔊'}</span>
+        </button>
+      )}
+
       {/* Üst — konum + rapor */}
       <div className="absolute top-2 left-2 right-2 flex items-start justify-between z-10 pointer-events-none">
         <span
@@ -139,7 +161,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </button>
       </div>
 
-      {/* Alt — zaman + reaksiyonlar — bottom-16 ile nav'ın üstünde kalır */}
+      {/* Alt — zaman + reaksiyonlar */}
       <div className="absolute bottom-16 left-4 right-4 z-10 space-y-3">
         <p className="font-jetbrains text-[10px] text-white/60 uppercase tracking-widest">{timeAgo}</p>
         <div className="flex gap-2 flex-wrap">
