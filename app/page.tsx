@@ -114,8 +114,6 @@ const ONEAppDemo = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [todayWindow, setTodayWindow] = useState<DailyWindow | null>(null);
   const [windowActive, setWindowActive] = useState(false);
-  const [todayWindow, setTodayWindow] = useState<DailyWindow | null>(null);
-  const [windowActive, setWindowActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
@@ -193,9 +191,6 @@ const ONEAppDemo = () => {
       const win = await getTodayWindow();
       setTodayWindow(win);
       setWindowActive(isWindowActive(win));
-      const win = await getTodayWindow();
-      setTodayWindow(win);
-      setWindowActive(isWindowActive(win));
 
       if (!captured) {
         const now = new Date();
@@ -224,10 +219,6 @@ const ONEAppDemo = () => {
     if (tab === 'capture') {
       if (!user) {
         setUploadError("Sign in to capture your reality.");
-        return;
-      }
-      if (!windowActive && todayWindow !== null) {
-        setUploadError("The capture window is closed. Check back later.");
         return;
       }
       if (!windowActive && todayWindow !== null) {
