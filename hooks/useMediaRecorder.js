@@ -82,13 +82,13 @@ export function useMediaRecorder({ onCaptureComplete, onStreamReady, facingMode 
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
-      const duration = recordingTime;
+      const duration = elapsed;
       console.log(`[ONE] Kayıt tamamlandı — format: ${mimeType}, boyut: ${(blob.size / 1024).toFixed(1)} KB, süre: ${duration}sn`);
       setIsRecording(false);
       setCountdown(null);
       setRecordingTime(0);
       setCanStop(false);
-      if (onCaptureComplete) onCaptureComplete({ blob, location, timestamp });
+      if (onCaptureComplete) onCaptureComplete({ blob, location, timestamp, durationSec: duration });
     };
 
     recorder.start(250);
