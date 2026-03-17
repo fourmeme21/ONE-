@@ -67,15 +67,24 @@ export const checkTodayCapture = async (): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Aktif pencere varsa pencere bazlı kontrol, yoksa günlük kontrol
+    const win = await getTodayWindow()
+    let query = supabase.from('posts').select('id').eq('user_id', user.id)
 
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id')
-      .eq('user_id', user.id)
-      .gte('captured_at', today.toISOString())
-      .limit(1)
+    if (win && isWindowActive(win)) {
+      // Pencere açıksa: bu pencere bloğunda çekim yapıldı mı?
+      query = query
+        .eq('window_block', win.block)
+        .gte('captured_at', win.window_start)
+        .lte('captured_at', win.window_end)
+    } else {
+      // Pencere kapalıysa: bugün herhangi bir çekim yapıldı mı?
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      query = query.gte('captured_at', today.toISOString())
+    }
+
+    const { data, error } = await query.limit(1)
 
     if (error) {
       console.error("checkTodayCapture error:", error.message)
@@ -95,7 +104,8 @@ export const checkTodayCapture = async (): Promise<boolean> => {
 export const uploadMoment = async (
   file: File,
   coords?: { lat: number; lng: number } | null,
-  capturedAt?: string
+  capturedAt?: string,
+  durationSec?: number
 ): Promise<string> => {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("No active session found.")
@@ -145,6 +155,8 @@ export const uploadMoment = async (
       country: geoData?.country || null,
       country_code: geoData?.country_code || null,
       captured_at: capturedAt || new Date().toISOString(),
+      duration_sec: durationSec || null,
+      window_block: await getTodayWindow().then(w => w?.block || null),
     }])
 
   if (dbError) throw new Error(dbError.message)
