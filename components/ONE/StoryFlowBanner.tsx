@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 import { getTodayWindow, isWindowActive, DailyWindow, supabase } from '@/lib/supabase';
 
 const blockTheme = {
-  sabah: { color: '#FFB347', label: 'Sabah Wave', icon: '🌅' },
-  ogle:  { color: '#00D9FF', label: 'Öğle Wave',  icon: '☀️' },
-  aksam: { color: '#C084FC', label: 'Akşam Wave', icon: '🌆' },
+  sabah: { color: '#FFB347', label: 'Morning Wave', icon: '🌅' },
+  ogle:  { color: '#00D9FF', label: 'Midday Wave',  icon: '☀️' },
+  aksam: { color: '#C084FC', label: 'Evening Wave', icon: '🌆' },
 };
 
 const StoryFlowBanner: React.FC = () => {
@@ -69,7 +69,7 @@ const StoryFlowBanner: React.FC = () => {
                 {theme.label}
               </p>
               <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: active ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)' }}>
-                {active ? 'Pencere açık — şimdi çek!' : 'Pencere kapandı — yarın yeni wave'}
+                {active ? 'Window open — capture now!' : 'Window closed — new wave tomorrow'}
               </p>
             </div>
           </div>
@@ -95,8 +95,8 @@ const StoryFlowBanner: React.FC = () => {
         >
           <span className="text-2xl" style={{ filter: 'grayscale(1) opacity(0.4)' }}>🌊</span>
           <div>
-            <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>Wave Bekleniyor</p>
-            <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Bugün henüz pencere oluşturulmadı</p>
+            <p className="font-jetbrains text-xs uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>No Wave Today</p>
+            <p className="font-jetbrains text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>No window has been created yet</p>
           </div>
         </motion.div>
       )}
