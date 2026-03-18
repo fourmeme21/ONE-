@@ -14,9 +14,10 @@ import OnboardingFlow from '@/components/ONE/OnboardingFlow';
 import AppNavigation from '@/components/ONE/AppNavigation';
 import ProfileScreen from '@/components/ONE/ProfileScreen';
 import StoryFlowBanner from '@/components/ONE/StoryFlowBanner';
+import SettingsScreen from '@/components/ONE/SettingsScreen';
 import LoginButton from '@/components/LoginButton';
 
-type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile';
+type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile' | 'settings';
 
 //  INTRO EKRANI 
 const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
@@ -114,6 +115,7 @@ const ONEAppDemo = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [todayWindow, setTodayWindow] = useState<DailyWindow | null>(null);
   const [windowActive, setWindowActive] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
@@ -266,6 +268,20 @@ const ONEAppDemo = () => {
               onUpgrade={() => setIsPremium(true)}
               sleepConfig={sleepConfig}
               onSleepChange={setSleepConfig}
+            />
+          </motion.div>
+        );
+      case 'settings':
+        return (
+          <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <SettingsScreen
+              sleepConfig={sleepConfig}
+              onSleepChange={setSleepConfig}
+              isAnonymous={isAnonymous}
+              onAnonymousChange={setIsAnonymous}
+              onSignOut={() => supabase.auth.signOut()}
+              onShowPrivacy={() => window.open('/privacy', '_blank')}
+              onShowTerms={() => window.open('/terms', '_blank')}
             />
           </motion.div>
         );
