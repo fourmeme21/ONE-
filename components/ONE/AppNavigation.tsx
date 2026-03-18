@@ -5,8 +5,8 @@ import { motion } from 'framer-motion';
 import { getTodayWindow, isWindowActive } from '@/lib/supabase';
 
 interface AppNavigationProps {
-  activeTab?: 'feed' | 'map' | 'capture' | 'archive' | 'profile';
-  onTabChange?: (tab: 'feed' | 'map' | 'capture' | 'archive' | 'profile') => void;
+  activeTab?: 'feed' | 'map' | 'capture' | 'archive' | 'profile' | 'settings';
+  onTabChange?: (tab: 'feed' | 'map' | 'capture' | 'archive' | 'profile' | 'settings') => void;
   hasNewMoments?: boolean;
 }
 
@@ -16,6 +16,7 @@ const tabs = [
   { id: 'capture' as const, label: 'Capture', icon: '⭕' },
   { id: 'archive' as const, label: 'Archive', icon: '📅' },
   { id: 'profile' as const, label: 'Profile', icon: '👤' },
+  { id: 'settings' as const, label: 'Settings', icon: '⚙️' },
 ];
 
 const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTabChange, hasNewMoments = true }) => {
@@ -36,7 +37,7 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     didFire.current = false;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent, tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile') => {
+  const handleTouchEnd = (e: React.TouchEvent, tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile' | 'settings') => {
     const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX.current);
     if (deltaY > 15 || deltaX > 15) return;
@@ -45,7 +46,7 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ activeTab = 'feed', onTab
     onTabChange?.(tabId);
   };
 
-  const handleClick = (e: React.MouseEvent, tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile') => {
+  const handleClick = (e: React.MouseEvent, tabId: 'feed' | 'map' | 'capture' | 'archive' | 'profile' | 'settings') => {
     if (didFire.current) { didFire.current = false; return; }
     e.stopPropagation();
     onTabChange?.(tabId);
