@@ -295,15 +295,15 @@ const GlobalFeed: React.FC = () => {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleCountrySelect(null)}
-                  className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                  className="flex-shrink-0 flex flex-col items-center justify-center px-2 py-1 rounded-lg border transition-all"
                   style={{
                     background: 'rgba(0,217,255,0.12)',
                     borderColor: 'rgba(0,217,255,0.5)',
-                    minWidth: '56px',
+                    minWidth: '40px',
                   }}
                 >
-                  <span className="text-lg">🌍</span>
-                  <span className="font-jetbrains text-[9px] uppercase tracking-wider mt-1" style={{ color: '#00D9FF' }}>
+                  <span className="text-sm">🌍</span>
+                  <span className="font-jetbrains text-[8px] uppercase tracking-wider mt-0.5" style={{ color: '#00D9FF' }}>
                     All
                   </span>
                 </motion.button>
@@ -313,16 +313,16 @@ const GlobalFeed: React.FC = () => {
                     key={c.country}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleCountrySelect(c.country)}
-                    className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl border transition-all"
+                    className="flex-shrink-0 flex flex-col items-center justify-center px-2 py-1 rounded-lg border transition-all"
                     style={{
                       background: 'rgba(255,255,255,0.04)',
                       borderColor: 'rgba(255,255,255,0.08)',
-                      minWidth: '64px',
+                      minWidth: '48px',
                     }}
                   >
-                    <span className="text-lg">{getFlag(c.country_code)}</span>
+                    <span className="text-sm">{getFlag(c.country_code)}</span>
                     <span
-                      className="font-jetbrains text-[9px] uppercase tracking-wider mt-1 text-center leading-tight"
+                      className="font-jetbrains text-[8px] uppercase tracking-wider mt-0.5 text-center leading-tight"
                       style={{ color: 'rgba(255,255,255,0.6)' }}
                     >
                       {c.country.length > 8 ? c.country.slice(0, 7) + '...' : c.country}
