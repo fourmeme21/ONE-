@@ -199,3 +199,55 @@ export const isWindowActive = (win: DailyWindow | null): boolean => {
   const end = new Date(win.window_end);
   return now >= start && now <= end;
 }
+/**
+ * Kullanıcı profil konumunu güncelle — giriş yapınca çağrılır.
+ */
+export const updateProfileLocation = async (): Promise<void> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Mevcut profil konumuna bak
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('city, country, country_code')
+      .eq('id', user.id)
+      .single()
+
+    // Zaten konum varsa güncelleme
+    if (profile?.city && profile.city !== 'Unknown') return
+
+    // GPS dene, olmazsa IP fallback
+    let coords: { lat: number; lng: number } | null = null
+    try {
+      coords = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => reject(),
+          { timeout: 8000, enableHighAccuracy: false }
+        )
+      })
+    } catch {
+      coords = await getLocationByIP()
+    }
+
+    if (!coords) return
+
+    const geo = await reverseGeocode(coords.lat, coords.lng)
+    if (!geo) return
+
+    await supabase
+      .from('profiles')
+      .update({
+        city: geo.city,
+        country: geo.country,
+        country_code: geo.country_code,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        location_point: `POINT(${coords.lng} ${coords.lat})`,
+      })
+      .eq('id', user.id)
+  } catch (err) {
+    console.error('updateProfileLocation error:', err)
+  }
+}
