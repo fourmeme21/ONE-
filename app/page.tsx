@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { uploadMoment, checkTodayCapture, getTodayWindow, isWindowActive, supabase, DailyWindow } from '@/lib/supabase';
+import { uploadMoment, checkTodayCapture, getTodayWindow, isWindowActive, updateProfileLocation, supabase, DailyWindow } from '@/lib/supabase';
 
 import SplashScreen from '@/components/ONE/SplashScreen';
 import NotificationMoment from '@/components/ONE/NotificationMoment';
@@ -149,6 +149,7 @@ const ONEAppDemo = () => {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) updateProfileLocation();
     });
     return () => subscription.unsubscribe();
   }, []);
