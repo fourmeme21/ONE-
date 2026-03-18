@@ -278,7 +278,7 @@ const GlobalFeed: React.FC = () => {
     <div className="w-full flex flex-col" style={{ height: '100dvh' }}>
 
       {/* STICKY HEADER */}
-      <div className="flex-shrink-0 px-5 pt-4 pb-2 space-y-3 bg-[var(--bg-void)]">
+      <div className="flex-shrink-0 px-3 pt-2 pb-1 space-y-2 bg-[var(--bg-void)]">
 
         {/* COUNTRY / CITY BLOCKS - single row, switches on country select */}
         {countries.length > 0 && (
@@ -394,7 +394,7 @@ const GlobalFeed: React.FC = () => {
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`px-4 py-2 rounded-full font-jetbrains text-xs tracking-wider uppercase transition-all ${
+                className={`px-3 py-1.5 rounded-full font-jetbrains text-[10px] tracking-wider uppercase transition-all ${
                   filter === f.id
                     ? 'bg-[var(--accent-electric)] text-[var(--bg-void)] font-bold'
                     : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
@@ -428,7 +428,7 @@ const GlobalFeed: React.FC = () => {
                   style={{ width: 6, height: 6, borderRadius: '50%', background: theme.dot, boxShadow: `0 0 8px ${theme.glow}, 0 0 16px ${theme.glow}` }}
                 />
                 <span className="text-[10px] font-jetbrains font-medium uppercase tracking-tighter" style={{ color: theme.text }}>
-                  {block ? `${block} wave` : 'Live Wave'}
+                  {block === 'sabah' ? 'Morning Wave' : block === 'ogle' ? 'Midday Wave' : block === 'aksam' ? 'Evening Wave' : 'Live Wave'}
                 </span>
                 <div className="w-[1px] h-3 bg-white/10" />
                 <span className="text-[10px] font-jetbrains font-bold tabular-nums" style={{ color: theme.text }}>
