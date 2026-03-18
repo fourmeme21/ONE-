@@ -161,8 +161,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </button>
       </div>
 
-      {/* Alt — zaman + reaksiyonlar */}
-      <div className="absolute bottom-16 left-4 right-4 z-10 space-y-3">
+      {/* Alt — zaman + reaksiyonlar — video oynarken gizle */}
+      <div className={`absolute bottom-16 left-4 right-4 z-10 space-y-3 transition-opacity duration-300 ${isPlaying ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
         <p className="font-jetbrains text-[10px] text-white/60 uppercase tracking-widest">{timeAgo}</p>
         <div className="flex gap-2 flex-wrap">
           {EMOJIS.map(({ emoji }) => {
