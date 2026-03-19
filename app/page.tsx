@@ -312,14 +312,19 @@ const ONEAppDemo = () => {
               >
                 <button
                   onClick={() => handleTabChange('feed')}
-                  className="font-bebas text-3xl"
-                  style={{
-                    background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
+                  className="flex items-center gap-2"
                 >
-                  ONE
+                  <img src="/icon-192.png" alt="ONE" className="w-8 h-8 rounded-full" />
+                  <span
+                    className="font-bebas text-3xl"
+                    style={{
+                      background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    ONE
+                  </span>
                 </button>
                 <div className="flex items-center gap-3">
                   {lastCapturedVideo && (
