@@ -5,15 +5,13 @@ import { motion } from 'framer-motion';
 
 interface SplashScreenProps {
   title?: string;
-  tagline?: string;
   duration?: number;
   onComplete?: () => void;
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({
   title = 'ONE',
-  tagline = '3 seconds. No filter. Real.',
-  duration = 2000,
+  duration = 2500,
   onComplete,
 }) => {
   const [progress, setProgress] = useState(0);
@@ -37,7 +35,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
   }, [duration, onComplete]);
 
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-[#05070F] via-[#0D1229] to-[#05070F] overflow-hidden flex flex-col items-center justify-center">
+    <div className="relative w-full h-screen bg-gradient-to-br from-[#05070F] via-[#0D1229] to-[#05070F] overflow-hidden flex flex-col items-center justify-center gap-0">
+      
+      {/* Arka plan animasyonu */}
       <motion.div
         className="absolute inset-0 opacity-30"
         animate={{
@@ -50,33 +50,59 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
         transition={{ duration: 3, repeat: Infinity }}
       />
 
-      <motion.div className="mb-12" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+      {/* Dünya */}
+      <motion.div
+        className="mb-8"
+        animate={{ scale: [1, 1.12, 1] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
         <span className="text-7xl">🌍</span>
       </motion.div>
 
-      <div className="flex gap-1 mb-6">
+      {/* ONE - harf harf */}
+      <div className="flex gap-1 mb-5">
         {title.split('').map((letter, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.1 }}
-            className="font-bebas text-8xl text-white tracking-tight"
+            className="font-bebas text-9xl text-white tracking-tight"
+            style={{
+              background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
           >
             {letter}
           </motion.div>
         ))}
       </div>
 
+      {/* Motto */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="flex flex-col items-center gap-0.5 mb-5"
+      >
+        <p className="font-bebas text-2xl text-white tracking-widest">The world.</p>
+        <p className="font-bebas text-2xl tracking-widest" style={{ color: '#7C3AED' }}>Right now.</p>
+        <p className="font-bebas text-2xl tracking-widest" style={{ color: '#00D9FF' }}>Unfiltered.</p>
+      </motion.div>
+
+      {/* Slogan */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.6 }}
-        className="font-jetbrains text-sm tracking-widest text-[var(--text-secondary)] mb-16"
+        transition={{ duration: 0.8, delay: 1.0 }}
+        className="font-jetbrains text-[11px] tracking-wider text-center px-8"
+        style={{ color: 'rgba(255,0,110,0.8)' }}
       >
-        {tagline}
+        Social media lied to you. ONE doesn&apos;t.
       </motion.p>
 
+      {/* Progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--border-subtle)]">
         <motion.div
           className="h-full bg-gradient-to-r from-[var(--accent-electric)] to-[var(--accent-pulse)]"
