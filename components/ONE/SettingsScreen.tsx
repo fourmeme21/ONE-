@@ -12,6 +12,8 @@ interface SettingsScreenProps {
   onSignOut: () => void;
   onShowPrivacy: () => void;
   onShowTerms: () => void;
+  isPremium?: boolean;
+  onUpgrade?: () => void;
 }
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -22,8 +24,21 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onSignOut,
   onShowPrivacy,
   onShowTerms,
+  isPremium = false,
+  onUpgrade,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) setProfile(data);
+    };
+    fetchProfile();
+  }, []);
 
   const handleDeleteAccount = async () => {
     try {
@@ -84,6 +99,49 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
   return (
     <div className="w-full max-w-md mx-auto space-y-5 pb-4">
       <h1 className="font-bebas text-3xl text-white tracking-wide px-1">Settings</h1>
+
+      {/* Profil Kartı */}
+      {profile && (
+        <div
+          className="rounded-2xl p-4 flex items-center gap-4"
+          style={{ background: 'linear-gradient(135deg, rgba(0,217,255,0.1), rgba(124,58,237,0.1))', border: '1px solid rgba(0,217,255,0.2)' }}
+        >
+          <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+            <span className="font-bebas text-xl text-white">{(profile.city || '?')[0].toUpperCase()}</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-jetbrains text-[10px] text-white/40 uppercase tracking-wider">Current Reality</p>
+            <p className="font-dm-sans text-sm text-white font-medium">
+              {profile.city || 'Unknown'} {profile.country_code ? [...profile.country_code.toUpperCase()].map((c: string) => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))).join('') : '🌍'}
+            </p>
+          </div>
+          <div className="flex gap-4 text-center">
+            <div>
+              <div className="font-bebas text-xl text-[var(--accent-electric)]">{profile.streak || 0}</div>
+              <div className="font-jetbrains text-[8px] text-white/30 uppercase">Streak</div>
+            </div>
+            <div>
+              <div className="font-bebas text-xl text-[var(--accent-electric)]">{profile.moments_captured || 0}</div>
+              <div className="font-jetbrains text-[8px] text-white/30 uppercase">Moments</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium */}
+      {!isPremium && (
+        <div className="rounded-xl p-4 border border-white/10" style={{ background: 'var(--bg-surface)' }}>
+          <p className="font-bebas text-base text-white mb-1 tracking-wide">LEVEL UP REALITY</p>
+          <p className="font-dm-sans text-xs text-white/50 mb-3">Yearly recaps, unlimited archive, premium features.</p>
+          <button
+            onClick={onUpgrade}
+            className="w-full py-2.5 rounded-lg font-jetbrains text-xs font-bold uppercase tracking-wider text-white"
+            style={{ background: 'linear-gradient(135deg, #00D9FF, #7C3AED)' }}
+          >
+            Unlock Premium — $9/mo
+          </button>
+        </div>
+      )}
 
       {/* Notifications */}
       <Section title="Notifications">
