@@ -1,5 +1,5 @@
 {
-  "name": "ONE - 3 seconds. No filter. Real.",
+  "name": "ONE - The world. Right now. Unfiltered.",
   "short_name": "ONE",
   "description": "Capture raw, unfiltered moments from around the world.",
   "start_url": "/",
@@ -11,12 +11,14 @@
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
