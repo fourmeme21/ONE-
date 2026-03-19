@@ -312,19 +312,8 @@ const ONEAppDemo = () => {
               >
                 <button
                   onClick={() => handleTabChange('feed')}
-                  className="flex items-center gap-2"
                 >
-                  <img src="/icon-192.png" alt="ONE" className="w-8 h-8 rounded-full" />
-                  <span
-                    className="font-bebas text-3xl"
-                    style={{
-                      background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
-                  >
-                    ONE
-                  </span>
+                  <img src="/icon-192.png" alt="ONE" className="w-12 h-12 rounded-full" />
                 </button>
                 <div className="flex items-center gap-3">
                   {lastCapturedVideo && (
