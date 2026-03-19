@@ -56,9 +56,9 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
       className="flex flex-col items-center gap-6 text-center"
     >
       <div className="space-y-1">
-        <p className="font-bebas text-4xl text-white tracking-wide">The world.</p>
-        <p className="font-bebas text-4xl tracking-wide" style={{ color: '#7C3AED' }}>Right now.</p>
-        <p className="font-bebas text-4xl tracking-wide" style={{ color: '#00D9FF' }}>Unfiltered.</p>
+        <p className="font-bebas text-5xl text-white tracking-wide">The world.</p>
+        <p className="font-bebas text-5xl tracking-wide" style={{ color: '#7C3AED' }}>Right now.</p>
+        <p className="font-bebas text-5xl tracking-wide" style={{ color: '#00D9FF' }}>Unfiltered.</p>
       </div>
 
       {/* Konsept */}
@@ -66,15 +66,15 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
         className="w-full rounded-2xl px-6 py-5 space-y-3"
         style={{ background: 'rgba(0,217,255,0.04)', border: '1px solid rgba(0,217,255,0.12)' }}
       >
-        <p className="font-jetbrains text-[11px] text-white/50 uppercase tracking-[0.2em]">What is ONE?</p>
+        <p className="font-jetbrains text-[11px] uppercase tracking-[0.2em]" style={{ color: 'rgba(255,0,110,0.8)' }}>Social media lied to you. ONE doesn't.</p>
         <p className="font-dm-sans text-sm text-white/80 leading-relaxed">
-          Every day, a window opens. The whole world captures the same moment — unfiltered, unedited, real.
+          Every day, a random window opens. Two hours. The whole world captures the same raw moment — no filters, no editing, no second chances.
         </p>
         <p className="font-dm-sans text-sm text-white/80 leading-relaxed">
-          No followers. No algorithms. No performance. Just humanity, right now.
+          No followers. No algorithms. No performance. No lies. Just humanity, right now.
         </p>
         <p className="font-jetbrains text-[10px] text-white/30 uppercase tracking-wider mt-2">
-          Your moments become your annual documentary.
+          Your moments become your annual documentary. Forever.
         </p>
       </div>
     </motion.div>
@@ -99,7 +99,7 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
         ENTER REALITY
       </motion.button>
       <p className="text-center font-jetbrains text-[9px] text-white/20 mt-3 uppercase tracking-widest">
-        Humanity's diary — since 2026
+        The world's unfiltered diary — since 2026
       </p>
     </motion.div>
   </motion.div>
