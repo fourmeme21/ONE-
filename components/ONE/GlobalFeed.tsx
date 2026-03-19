@@ -387,75 +387,70 @@ const GlobalFeed: React.FC = () => {
           </AnimatePresence>
         )}
 
-        {/* Filters */}
-        <div className="flex gap-2">
-          {filters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-full font-jetbrains text-[10px] tracking-wider uppercase transition-all ${
-                filter === f.id
-                  ? 'bg-[var(--accent-electric)] text-[var(--bg-void)] font-bold'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {/* Filters + Wave Banner — tek satır */}
+        <div className="flex items-center gap-2">
+          {/* Filtreler */}
+          <div className="flex gap-1.5">
+            {filters.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className="px-3 py-1.5 rounded-full font-jetbrains text-[10px] tracking-wider uppercase transition-all"
+                style={{
+                  background: filter === f.id ? '#00D9FF' : 'rgba(255,255,255,0.1)',
+                  color: filter === f.id ? '#000' : 'rgba(255,255,255,0.7)',
+                  fontWeight: filter === f.id ? 'bold' : 'normal',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Wave Banner */}
-        {(() => {
-          const block = activeWindow?.block;
-          const now = new Date();
-          const isActive = activeWindow
-            ? now >= new Date(activeWindow.window_start) && now <= new Date(activeWindow.window_end)
-            : false;
-          const theme = block === 'sabah'
-            ? { color: '#FFB347', label: 'Morning Wave', icon: '🌅' }
-            : block === 'ogle'
-            ? { color: '#00D9FF', label: 'Midday Wave', icon: '☀️' }
-            : block === 'aksam'
-            ? { color: '#C084FC', label: 'Evening Wave', icon: '🌆' }
-            : { color: '#00D9FF', label: 'Wave', icon: '🌊' };
+          {/* Wave Badge — ince */}
+          {(() => {
+            const block = activeWindow?.block;
+            const now = new Date();
+            const isActive = activeWindow
+              ? now >= new Date(activeWindow.window_start) && now <= new Date(activeWindow.window_end)
+              : false;
+            const theme = block === 'sabah'
+              ? { color: '#FFB347', label: 'Morning', icon: '🌅' }
+              : block === 'ogle'
+              ? { color: '#00D9FF', label: 'Midday', icon: '☀️' }
+              : block === 'aksam'
+              ? { color: '#C084FC', label: 'Evening', icon: '🌆' }
+              : { color: '#555', label: 'No Wave', icon: '🌊' };
 
-          return (
-            <motion.div
-              className="w-full rounded-xl px-3 py-2.5 flex items-center justify-between"
-              style={{
-                background: isActive ? `${theme.color}18` : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isActive ? theme.color + '55' : 'rgba(255,255,255,0.07)'}`,
-              }}
-            >
-              <div className="flex items-center gap-2.5">
-                {isActive && (
-                  <motion.div
-                    animate={{ opacity: [0.4, 1, 0.4], scale: [0.85, 1.2, 0.85] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    style={{ width: 7, height: 7, borderRadius: '50%', background: theme.color, boxShadow: `0 0 10px ${theme.color}`, flexShrink: 0 }}
-                  />
-                )}
-                <span className="text-base">{theme.icon}</span>
-                <div>
-                  <p className="text-[11px] font-jetbrains font-bold uppercase" style={{ color: isActive ? theme.color : 'rgba(255,255,255,0.25)' }}>
-                    {activeWindow ? theme.label : 'No Wave Today'}
-                  </p>
-                  <p className="text-[9px] font-jetbrains" style={{ color: isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}>
-                    {isActive ? '🔴 Window open — capture now!' : activeWindow ? '⏳ Window closed — tomorrow a new wave opens' : 'Check back tomorrow'}
-                  </p>
-                </div>
-              </div>
-              {isActive && (
-                <div className="flex flex-col items-end">
-                  <span className="text-[9px] font-jetbrains text-white/30 uppercase">closes in</span>
-                  <span className="text-[12px] font-jetbrains font-bold tabular-nums" style={{ color: theme.color }}>
-                    {timeLeft || '--:--:--'}
+            return (
+              <div
+                className="flex-1 flex items-center justify-between px-2.5 py-1.5 rounded-full"
+                style={{
+                  background: isActive ? `${theme.color}20` : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${isActive ? theme.color + '60' : 'rgba(255,255,255,0.1)'}`,
+                }}
+              >
+                <div className="flex items-center gap-1.5">
+                  {isActive && (
+                    <motion.div
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      style={{ width: 5, height: 5, borderRadius: '50%', background: theme.color, boxShadow: `0 0 6px ${theme.color}`, flexShrink: 0 }}
+                    />
+                  )}
+                  <span className="text-[10px] font-jetbrains font-bold uppercase" style={{ color: isActive ? theme.color : 'rgba(255,255,255,0.3)' }}>
+                    {theme.icon} {theme.label}
                   </span>
                 </div>
-              )}
-            </motion.div>
-          );
-        })()}
+                {isActive && (
+                  <span className="text-[10px] font-jetbrains font-bold tabular-nums" style={{ color: theme.color }}>
+                    {timeLeft || '--:--:--'}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Active filter label */}
         <AnimatePresence>
