@@ -12,12 +12,11 @@ import WorldHeatmap from '@/components/ONE/WorldHeatmap';
 import TimeArchive from '@/components/ONE/TimeArchive';
 import OnboardingFlow from '@/components/ONE/OnboardingFlow';
 import AppNavigation from '@/components/ONE/AppNavigation';
-import ProfileScreen from '@/components/ONE/ProfileScreen';
 import StoryFlowBanner from '@/components/ONE/StoryFlowBanner';
 import SettingsScreen from '@/components/ONE/SettingsScreen';
 import LoginButton from '@/components/LoginButton';
 
-type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'profile' | 'settings';
+type TabType = 'feed' | 'map' | 'capture' | 'archive' | 'settings';
 
 //  INTRO EKRANI 
 const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
@@ -263,17 +262,6 @@ const ONEAppDemo = () => {
             <TimeArchive />
           </motion.div>
         );
-      case 'profile':
-        return (
-          <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <ProfileScreen
-              isPremium={isPremium}
-              onUpgrade={() => setIsPremium(true)}
-              sleepConfig={sleepConfig}
-              onSleepChange={setSleepConfig}
-            />
-          </motion.div>
-        );
       case 'settings':
         return (
           <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -285,6 +273,8 @@ const ONEAppDemo = () => {
               onSignOut={() => supabase.auth.signOut()}
               onShowPrivacy={() => window.open('/privacy', '_blank')}
               onShowTerms={() => window.open('/terms', '_blank')}
+              isPremium={isPremium}
+              onUpgrade={() => setIsPremium(true)}
             />
           </motion.div>
         );
