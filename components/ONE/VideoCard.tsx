@@ -148,8 +148,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Üst — konum + rapor */}
       <div className="absolute top-2 left-2 right-2 flex items-start justify-between z-10 pointer-events-none">
         <span
-          className="text-[9px] font-jetbrains tracking-wider text-white uppercase"
-          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+          className="text-[18px] font-jetbrains tracking-wider uppercase font-bold"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9)', color: '#00D9FF' }}
         >
           📍 {city || '?'}{countryCode ? `, ${countryCode}` : ''}
         </span>
