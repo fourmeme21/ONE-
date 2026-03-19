@@ -25,7 +25,7 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 z-[300] flex flex-col items-center justify-between px-8 py-16"
+    className="fixed inset-0 z-[300] flex flex-col items-center justify-between px-8 py-10 overflow-y-auto"
     style={{ background: '#05070F' }}
   >
     {/* Logo */}
@@ -567,7 +567,7 @@ const ONEAppDemo = () => {
 
       {/* Splash */}
       <AnimatePresence>
-        {showSplash && <SplashScreen duration={2000} onComplete={handleSplashComplete} />}
+        {showSplash && <SplashScreen duration={3500} onComplete={handleSplashComplete} />}
       </AnimatePresence>
 
       {/* Intro  sadece giri yaplmamsa */}
