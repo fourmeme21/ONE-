@@ -25,20 +25,20 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 z-[300] flex flex-col items-center justify-between px-8 py-10 overflow-y-auto"
+    className="fixed inset-0 z-[300] flex flex-col items-center justify-center px-6"
     style={{ background: '#05070F' }}
   >
     {/* Logo */}
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="flex flex-col items-center gap-2 mt-8"
+      transition={{ delay: 0.2 }}
+      className="flex flex-col items-center mb-2"
     >
       <h1
         className="font-bebas leading-none"
         style={{
-          fontSize: 'clamp(96px, 28vw, 160px)',
+          fontSize: 'clamp(80px, 22vw, 120px)',
           background: 'linear-gradient(135deg, #00D9FF 0%, #7C3AED 55%, #FF006E 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -52,38 +52,41 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ delay: 0.7 }}
-      className="flex flex-col items-center gap-6 text-center"
+      transition={{ delay: 0.5 }}
+      className="flex flex-col items-center text-center mb-4"
     >
-      <div className="space-y-1">
-        <p className="font-bebas text-5xl text-white tracking-wide">The world.</p>
-        <p className="font-bebas text-5xl tracking-wide" style={{ color: '#7C3AED' }}>Right now.</p>
-        <p className="font-bebas text-5xl tracking-wide" style={{ color: '#00D9FF' }}>Unfiltered.</p>
+      <div className="space-y-0">
+        <p className="font-bebas text-4xl text-white tracking-wide">The world.</p>
+        <p className="font-bebas text-4xl tracking-wide" style={{ color: '#7C3AED' }}>Right now.</p>
+        <p className="font-bebas text-4xl tracking-wide" style={{ color: '#00D9FF' }}>Unfiltered.</p>
       </div>
+    </motion.div>
 
-      {/* Konsept */}
-      <div
-        className="w-full rounded-2xl px-6 py-5 space-y-3"
-        style={{ background: 'rgba(0,217,255,0.04)', border: '1px solid rgba(0,217,255,0.12)' }}
-      >
-        <p className="font-jetbrains text-[11px] uppercase tracking-[0.2em]" style={{ color: 'rgba(255,0,110,0.8)' }}>Social media lied to you. ONE doesn't.</p>
-        <p className="font-dm-sans text-sm text-white/80 leading-relaxed">
-          Every day, a random window opens. Two hours. The whole world captures the same raw moment — no filters, no editing, no second chances.
-        </p>
-        <p className="font-dm-sans text-sm text-white/80 leading-relaxed">
-          No followers. No algorithms. No performance. No lies. Just humanity, right now.
-        </p>
-        <p className="font-jetbrains text-[10px] text-white/30 uppercase tracking-wider mt-2">
-          Your moments become your annual documentary. Forever.
-        </p>
-      </div>
+    {/* Konsept */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.7 }}
+      className="w-full rounded-2xl px-5 py-4 space-y-2 mb-5"
+      style={{ background: 'rgba(0,217,255,0.04)', border: '1px solid rgba(0,217,255,0.12)' }}
+    >
+      <p className="font-jetbrains text-[10px] uppercase tracking-[0.2em] text-center" style={{ color: 'rgba(255,0,110,0.8)' }}>Social media lied to you. ONE doesn't.</p>
+      <p className="font-dm-sans text-xs text-white/80 leading-relaxed text-center">
+        Every day, a random window opens. Two hours. The whole world captures the same raw moment — no filters, no editing, no second chances.
+      </p>
+      <p className="font-dm-sans text-xs text-white/70 leading-relaxed text-center">
+        No followers. No algorithms. No lies. Just humanity, right now.
+      </p>
+      <p className="font-jetbrains text-[9px] text-white/30 uppercase tracking-wider text-center">
+        Your moments become your annual documentary.
+      </p>
     </motion.div>
 
     {/* Enter Butonu */}
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 1.1 }}
+      transition={{ delay: 0.9 }}
       className="w-full"
     >
       <motion.button
@@ -98,7 +101,7 @@ const IntroScreen = ({ onEnter }: { onEnter: () => void }) => (
       >
         ENTER REALITY
       </motion.button>
-      <p className="text-center font-jetbrains text-[9px] text-white/20 mt-3 uppercase tracking-widest">
+      <p className="text-center font-jetbrains text-[9px] text-white/20 mt-2 uppercase tracking-widest">
         The world's unfiltered diary — since 2026
       </p>
     </motion.div>
