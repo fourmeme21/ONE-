@@ -118,6 +118,7 @@ const ONEAppDemo = () => {
   const [todayWindow, setTodayWindow] = useState<DailyWindow | null>(null);
   const [windowActive, setWindowActive] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [showWindowClosed, setShowWindowClosed] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [hasCapturedToday, setHasCapturedToday] = useState(false);
@@ -227,7 +228,7 @@ const ONEAppDemo = () => {
         return;
       }
       if (!windowActive && todayWindow !== null) {
-        setUploadError("The capture window is closed. Check back later.");
+        setShowWindowClosed(true);
         return;
       }
       if (hasCapturedToday) {
@@ -359,6 +360,48 @@ const ONEAppDemo = () => {
                 isActive={true}
                 onCapture={() => setShowNotification(false)}
               />
+            )}
+          </AnimatePresence>
+
+          {/* Pencere Kapalı Modal */}
+          <AnimatePresence>
+            {showWindowClosed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-end justify-center px-5 pb-8"
+                style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+                onClick={() => setShowWindowClosed(false)}
+              >
+                <motion.div
+                  initial={{ y: 100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 100, opacity: 0 }}
+                  transition={{ type: 'spring', damping: 25 }}
+                  className="w-full max-w-sm rounded-3xl p-6 space-y-4"
+                  style={{ background: '#0D1229', border: '1px solid rgba(192,132,252,0.3)' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="text-center space-y-2">
+                    <span className="text-5xl">🌊</span>
+                    <h2 className="font-bebas text-3xl text-white">Wave Closed</h2>
+                    <p className="font-dm-sans text-sm text-white/60 leading-relaxed">
+                      The capture window is closed right now. A new random wave opens every day — morning, midday, or evening.
+                    </p>
+                    <p className="font-jetbrains text-xs text-white/40 uppercase tracking-wider">
+                      {todayWindow ? 'Check back tomorrow for the next wave.' : 'No wave today. Tomorrow a new one opens.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowWindowClosed(false)}
+                    className="w-full py-3 rounded-2xl font-bebas text-xl tracking-widest text-white"
+                    style={{ background: 'linear-gradient(135deg, #7C3AED, #C084FC)' }}
+                  >
+                    GOT IT
+                  </button>
+                </motion.div>
+              </motion.div>
             )}
           </AnimatePresence>
 
