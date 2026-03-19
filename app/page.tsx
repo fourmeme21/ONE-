@@ -313,7 +313,7 @@ const ONEAppDemo = () => {
                 <button
                   onClick={() => handleTabChange('feed')}
                 >
-                  <img src="/icon-192.png" alt="ONE" className="w-12 h-12 rounded-full" />
+                  <img src="/icon-192.png" alt="ONE" className="w-20 h-20 rounded-full" />
                 </button>
                 <div className="flex items-center gap-3">
                   {lastCapturedVideo && (
