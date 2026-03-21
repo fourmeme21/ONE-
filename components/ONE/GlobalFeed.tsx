@@ -167,20 +167,30 @@ const GlobalFeed: React.FC = () => {
     else setLoadingMore(true);
 
     try {
-      let query = supabase
-        .from('posts')
-        .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
-        .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
+      // top filtresi — direkt tablo sorgusu
+      if (filter === 'top') {
+        let query = supabase
+          .from('posts')
+          .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
+          .order('reaction_heart', { ascending: false })
+          .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
-      if (selectedCity) {
-        query = query.eq('city', selectedCity);
-      } else if (selectedCountry) {
-        query = query.eq('country', selectedCountry);
+        if (selectedCity) query = query.eq('city', selectedCity);
+        else if (selectedCountry) query = query.eq('country', selectedCountry);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        const result = data || [];
+        if (reset) setPosts(result);
+        else setPosts(prev => [...prev, ...result]);
+        setHasMore(result.length === PAGE_SIZE);
+        await fetchUserReactions(result.map((p: Post) => p.id));
+        setPage(currentPage + 1);
+        return;
       }
 
-      if (filter === 'top') {
-        query = query.order('reaction_heart', { ascending: false });
-      } else if (filter === 'nearby' && userCoords) {
+      // nearby filtresi — posts_nearby RPC
+      if (filter === 'nearby' && userCoords) {
         const { data: nearbyData } = await supabase.rpc('posts_nearby', {
           user_lat: userCoords.lat,
           user_lng: userCoords.lng,
@@ -195,26 +205,40 @@ const GlobalFeed: React.FC = () => {
         await fetchUserReactions(result.map((p: Post) => p.id));
         setPage(currentPage + 1);
         return;
-      } else {
-        query = query.order('captured_at', { ascending: false });
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      // all filtresi — get_feed RPC (akıllı algoritma)
+      const feedParams: any = {
+        page_limit: PAGE_SIZE,
+        page_offset: currentPage * PAGE_SIZE,
+        user_lat: userCoords?.lat ?? null,
+        user_lng: userCoords?.lng ?? null,
+        current_window_start: activeWindow?.window_start ?? null,
+        current_window_end: activeWindow?.window_end ?? null,
+      };
 
-      const result = data || [];
+      let { data: feedData, error: feedError } = await supabase.rpc('get_feed', feedParams);
+
+      if (feedError) throw feedError;
+
+      // Şehir / ülke filtresi client-side (get_feed global döner)
+      let result = feedData || [];
+      if (selectedCity) result = result.filter((p: Post) => p.city === selectedCity);
+      else if (selectedCountry) result = result.filter((p: Post) => p.country === selectedCountry);
+
       if (reset) setPosts(result);
       else setPosts(prev => [...prev, ...result]);
-      setHasMore(result.length === PAGE_SIZE);
+      setHasMore((feedData || []).length === PAGE_SIZE);
       await fetchUserReactions(result.map((p: Post) => p.id));
       setPage(currentPage + 1);
+
     } catch (err) {
       console.error('Feed fetch error:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filter, page, userCoords, fetchUserReactions, selectedCity, selectedCountry]);
+  }, [filter, page, userCoords, activeWindow, fetchUserReactions, selectedCity, selectedCountry]);
 
   useEffect(() => {
     fetchPosts(true);
