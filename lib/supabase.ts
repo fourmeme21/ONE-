@@ -178,12 +178,14 @@ export interface DailyWindow {
 
 export const getTodayWindow = async (): Promise<DailyWindow | null> => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('daily_windows')
       .select('*')
-      .eq('date', today)
-      .single();
+      .lte('window_start', now)
+      .gte('window_end', now)
+      .limit(1)
+      .maybeSingle();
 
     if (error || !data) return null;
     return data as DailyWindow;
@@ -199,6 +201,7 @@ export const isWindowActive = (win: DailyWindow | null): boolean => {
   const end = new Date(win.window_end);
   return now >= start && now <= end;
 }
+
 /**
  * Kullanıcı profil konumunu güncelle — giriş yapınca çağrılır.
  */
