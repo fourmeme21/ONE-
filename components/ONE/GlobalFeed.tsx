@@ -38,7 +38,6 @@ interface CountryBlock {
 
 const PAGE_SIZE = 10;
 
-// Country code to flag emoji
 const getFlag = (code: string | null) => {
   if (!code) return '🌍';
   return [...code.trim().toUpperCase()]
@@ -79,7 +78,7 @@ const GlobalFeed: React.FC = () => {
     };
 
     const fetchWindow = async () => {
-      const win = await getTodayWindow();
+      const win = await getTodayWindow(userCoords?.lng ?? null);
       setActiveWindow(win);
       if (win?.window_end) startTimer(win.window_end);
       else setTimeLeft('--:--:--');
@@ -87,14 +86,12 @@ const GlobalFeed: React.FC = () => {
 
     fetchWindow();
     return () => clearInterval(timer);
-  }, []);
+  }, [userCoords]);
 
-  // Country / city blocks
   const [countries, setCountries] = useState<CountryBlock[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  // User info
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUserId(user?.id || null);
@@ -109,7 +106,6 @@ const GlobalFeed: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Fetch country -> city hierarchy
   useEffect(() => {
     const fetchCountries = async () => {
       const { data, error } = await supabase
@@ -151,7 +147,6 @@ const GlobalFeed: React.FC = () => {
     fetchCountries();
   }, []);
 
-  // Fetch user reactions
   const fetchUserReactions = useCallback(async (postIds: string[]) => {
     if (!currentUserId || postIds.length === 0) return;
     const { data } = await supabase
@@ -166,7 +161,6 @@ const GlobalFeed: React.FC = () => {
     }
   }, [currentUserId]);
 
-  // Fetch posts
   const fetchPosts = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
     if (reset) { setLoading(true); setPosts([]); setPage(0); setHasMore(true); }
@@ -178,7 +172,6 @@ const GlobalFeed: React.FC = () => {
         .select('id, file_url, city, country, country_code, captured_at, reaction_heart, reaction_wow, reaction_haha, reaction_world, reaction_pray')
         .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
-      // Country / city filter
       if (selectedCity) {
         query = query.eq('city', selectedCity);
       } else if (selectedCountry) {
@@ -223,18 +216,15 @@ const GlobalFeed: React.FC = () => {
     }
   }, [filter, page, userCoords, fetchUserReactions, selectedCity, selectedCountry]);
 
-  // Refetch on filter / country / city change
   useEffect(() => {
     fetchPosts(true);
   }, [filter, selectedCity, selectedCountry]);
 
-  // Reset city when country changes
   const handleCountrySelect = (country: string | null) => {
     setSelectedCountry(country);
     setSelectedCity(null);
   };
 
-  // Add / remove reaction
   const handleReact = async (postId: string, emoji: EmojiType) => {
     if (!currentUserId) return;
     const existing = userReactions[postId];
@@ -269,7 +259,6 @@ const GlobalFeed: React.FC = () => {
     { id: 'top' as FilterType, label: 'Top' },
   ];
 
-  // Pre-compute selected country cities to avoid optional chaining in JSX
   const selectedCountryCities: CityBlock[] = selectedCountry
     ? (countries.find(c => c.country === selectedCountry)?.cities || [])
     : [];
@@ -280,7 +269,6 @@ const GlobalFeed: React.FC = () => {
       {/* STICKY HEADER */}
       <div className="flex-shrink-0 px-3 pt-2 pb-1 space-y-2 bg-[var(--bg-void)]">
 
-        {/* COUNTRY / CITY BLOCKS - single row, switches on country select */}
         {countries.length > 0 && (
           <AnimatePresence mode="wait">
             {!selectedCountry ? (
@@ -342,7 +330,6 @@ const GlobalFeed: React.FC = () => {
                 className="flex gap-2 overflow-x-auto pb-1"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {/* Back button */}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleCountrySelect(null)}
@@ -387,9 +374,8 @@ const GlobalFeed: React.FC = () => {
           </AnimatePresence>
         )}
 
-        {/* Filters + Wave Banner — tek satır */}
+        {/* Filters + Wave Banner */}
         <div className="flex items-center gap-2">
-          {/* Filtreler */}
           <div className="flex gap-1.5">
             {filters.map(f => (
               <button
@@ -407,7 +393,6 @@ const GlobalFeed: React.FC = () => {
             ))}
           </div>
 
-          {/* Wave Badge — ince */}
           {(() => {
             const block = activeWindow?.block;
             const now = new Date();
@@ -452,7 +437,6 @@ const GlobalFeed: React.FC = () => {
           })()}
         </div>
 
-        {/* Active filter label */}
         <AnimatePresence>
           {(selectedCountry || selectedCity) && (
             <motion.div
